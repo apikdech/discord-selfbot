@@ -4,8 +4,8 @@ After=network.target
 
 [Service]
 Type=simple
-User=your_user
-Group=your_user
+User=apikdech
+Group=apikdech
 WorkingDirectory=/opt/discord-bot
 Environment=PATH=/opt/discord-bot/venv/bin
 ExecStart=/opt/discord-bot/venv/bin/python count.py
