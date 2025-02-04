@@ -148,17 +148,15 @@ async def main():
                 if number >= 1:
                     await bot.send_message(message.channel_id, str(number))
                 return
-
+                
+            global send_number
+            
             if message.content == "<:PauseBusiness:941975578729402408>":
-                global send_number
-
                 send_number = False
                 await bot.send_message(message.channel_id, "<:PauseBusiness:941975578729402408>")
                 return
 
             if message.content == "<:sadcatplease:898223330073673798>":
-                global send_number
-
                 send_number = True
                 await bot.send_message(message.channel_id, "<:sadcatplease:898223330073673798>")
                 return
