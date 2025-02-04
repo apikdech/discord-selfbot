@@ -1,0 +1,6 @@
+aiohttp
+websockets
+python-dotenv
+openai
+aiosqlite
+apscheduler 

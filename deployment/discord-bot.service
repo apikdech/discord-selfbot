@@ -1,0 +1,16 @@
+[Unit]
+Description=Discord Bot Service
+After=network.target
+
+[Service]
+Type=simple
+User=your_user
+Group=your_user
+WorkingDirectory=/opt/discord-bot
+Environment=PATH=/opt/discord-bot/venv/bin
+ExecStart=/opt/discord-bot/venv/bin/python count.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
