@@ -19,6 +19,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import random
 
 BLACKLISTED_IDS = ["xxxdodgemasterxxx"]
+COUNTING_BOT_ID = "510016054391734273"
 
 message_numbers: Dict[str, Deque[MessageNumber]] = {}
 reaction_messages: Dict[str, Deque[str]] = {}
@@ -43,13 +44,13 @@ def add_message_number(
     )
 
 
-# Helper function to get last message number for a channel
-def get_last_message_number(channel_id: str) -> MessageNumber | None:
+# Helper function to get largest message number for a channel
+def get_largest_message_number(channel_id: str) -> MessageNumber | None:
     if channel_id not in message_numbers:
         return None
 
     channel_messages = message_numbers[channel_id]
-    return channel_messages[-1] if channel_messages else None
+    return max(channel_messages, key=lambda x: x.number) if channel_messages else None
 
 
 def check_reaction_message(channel_id: str, message_id: str) -> bool:
@@ -63,6 +64,8 @@ last_typing_timestamp = 0
 cooldown_min = 0.1
 cooldown_max = 0.5
 send_number = True
+counter_stuck_times: Dict[str, int] = {}
+send_stuck_help = False
 
 
 async def send_number_updates(bot: DiscordSelfBot):
@@ -71,32 +74,45 @@ async def send_number_updates(bot: DiscordSelfBot):
 
     now = datetime.now().astimezone()
     for channel_id in message_numbers.keys():
-        last_number = get_last_message_number(channel_id)
-        if last_number:
-            if last_number.author_id == bot.user.id:
+        largest_number = get_largest_message_number(channel_id)
+        if largest_number:
+            if largest_number.author_id == bot.user.id:
                 return
             # Convert the timestamp string to datetime object
-            last_timestamp = datetime.fromisoformat(last_number.timestamp)
+            last_timestamp = datetime.fromisoformat(largest_number.timestamp)
             time_diff = (now - last_timestamp).total_seconds()
-            # cooldown = 2 + random.uniform(1, 5)
             cooldown = cooldown_min + random.uniform(0, cooldown_max - cooldown_min)
-            if (
-                time_diff > cooldown
-            ) and check_reaction_message(channel_id, last_number.message_id):
+
+            global send_stuck_help
+
+            if (time_diff > cooldown) and check_reaction_message(
+                channel_id, largest_number.message_id
+            ):
                 log.info("Sending number updates")
                 await bot.trigger_typing(channel_id)
-                await bot.send_message(channel_id, str(last_number.number + 1))
+                await bot.send_message(channel_id, str(largest_number.number + 1))
                 add_message_number(
                     channel_id,
-                    last_number.message_id,
-                    last_number.number + 1,
+                    largest_number.message_id,
+                    largest_number.number + 1,
                     now.isoformat(),
                     bot.user.id,
                 )
+                send_stuck_help = False
+            elif (
+                counter_stuck_times.get(channel_id, 0) > 10 and send_stuck_help == False
+            ):
+                await bot.send_message(channel_id, "c!server")
+                counter_stuck_times[channel_id] = 0
+
+                send_stuck_help = True
             else:
-                response = f"Waiting for {cooldown - time_diff} seconds to send number {last_number.number + 1} update from {last_number.author_id}"
+                if send_stuck_help == False:
+                    counter_stuck_times[channel_id] = (
+                        counter_stuck_times.get(channel_id, 0) + 1
+                    )
+                response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
                 log.info(response)
-                # await bot.reply_to_message(last_number.message_id, channel_id, response)
 
 
 async def main():
@@ -136,6 +152,8 @@ async def main():
         if message.author.id == bot.user.id:
             return
 
+        global send_number
+
         if message.content == ".":
             global last_typing_timestamp
             last_typing_timestamp = int(message.timestamp) + 10
@@ -148,17 +166,19 @@ async def main():
                 if number >= 1:
                     await bot.send_message(message.channel_id, str(number))
                 return
-                
-            global send_number
-            
+
             if message.content == "<:PauseBusiness:941975578729402408>":
                 send_number = False
-                await bot.send_message(message.channel_id, "<:PauseBusiness:941975578729402408>")
+                await bot.send_message(
+                    message.channel_id, "<:PauseBusiness:941975578729402408>"
+                )
                 return
 
             if message.content == "<:sadcatplease:898223330073673798>":
                 send_number = True
-                await bot.send_message(message.channel_id, "<:sadcatplease:898223330073673798>")
+                await bot.send_message(
+                    message.channel_id, "<:sadcatplease:898223330073673798>"
+                )
                 return
 
             if message.content.startswith("cooldown"):
@@ -168,8 +188,66 @@ async def main():
                 cooldown_max = message.content.split()[2]
                 cooldown_min = float(cooldown_min)
                 cooldown_max = float(cooldown_max)
-                await bot.send_message(message.channel_id, f"Updated the cooldown to be [{cooldown_min}, {cooldown_max}]")
+                await bot.send_message(
+                    message.channel_id,
+                    f"Updated the cooldown to be [{cooldown_min}, {cooldown_max}]",
+                )
                 return
+
+        if message.author.id == COUNTING_BOT_ID:
+            if (
+                len(message.embeds) == 0
+                or message.referenced_message.content != "c!server"
+                or message.referenced_message.author.id != bot.user.id
+            ):
+                return
+
+            embed = message.embeds[0]
+
+            # Parse the description to get current number and last counter
+            if embed.description:
+                try:
+                    # Extract current number - matches "Current Number: **X,XXX**"
+                    current_number = embed.description.split("\n")[0]
+                    current_number = current_number.split("**")[1].replace(",", "")
+                    current_number = int(current_number)
+
+                    # Extract last counter - matches "Last counted by: <@USER_ID>"
+                    last_counter = embed.description.split("\n")[3]
+                    last_counter_id = last_counter.split("<@")[1].split(">")[0]
+
+                    log.info(
+                        f"Current number: {current_number}, Last counter: {last_counter_id}"
+                    )
+
+                    if last_counter_id == bot.user.id:
+                        return
+
+                    global send_stuck_help
+
+                    send_stuck_help = False
+                    send_number = True
+
+                    await bot.send_message(
+                        message.channel_id,
+                        str(current_number + 1),
+                    )
+                    # Update the message numbers
+                    add_message_number(
+                        message.channel_id,
+                        message.id,
+                        current_number + 1,
+                        message.timestamp,
+                        last_counter_id,
+                    )
+                except (IndexError, ValueError) as e:
+                    log.error(f"Error parsing embed description: {e}")
+                    log.debug(f"Embed description: {embed.description}")
+
+            return
+
+        if len(message.content.split()) == 0:
+            return
 
         first_word = message.content.split()[0]
 

@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from typing import List, Optional, Dict
 from enum import Enum
 
+
 class EventType(Enum):
     """
     Enum representing supported Discord events.
-    
+
     Available events:
         TYPING_START: When a user starts typing in a channel
         MESSAGE_CREATE: When a new message is sent
@@ -13,7 +14,7 @@ class EventType(Enum):
         MESSAGE_DELETE: When a message is deleted
         MESSAGE_REACTION_ADD: When a reaction is added to a message
         MESSAGE_REACTION_REMOVE: When a reaction is removed from a message
-    
+
     Each event provides specific data:
         TYPING_START -> TypingEvent
         MESSAGE_CREATE -> Message
@@ -22,6 +23,7 @@ class EventType(Enum):
         MESSAGE_REACTION_ADD -> Reaction
         MESSAGE_REACTION_REMOVE -> Reaction
     """
+
     TYPING_START = "TYPING_START"
     MESSAGE_CREATE = "MESSAGE_CREATE"
     MESSAGE_UPDATE = "MESSAGE_UPDATE"
@@ -29,11 +31,13 @@ class EventType(Enum):
     MESSAGE_REACTION_ADD = "MESSAGE_REACTION_ADD"
     MESSAGE_REACTION_REMOVE = "MESSAGE_REACTION_REMOVE"
 
+
 @dataclass
 class UserSession:
     """
     Represents a user's session with their basic information.
     """
+
     verified: bool
     id: str
     username: str
@@ -48,30 +52,31 @@ class UserSession:
     premium_type: Optional[int]
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'UserSession':
+    def from_dict(cls, data: Dict) -> "UserSession":
         """
         Create a UserSession instance from a dictionary of data.
         """
         return cls(
-            verified=data.get('verified', False),
-            id=data.get('id'),
-            username=data.get('username'),
-            global_name=data.get('global_name'),
-            discriminator=data.get('discriminator'),
-            avatar=data.get('avatar'),
-            public_flags=data.get('public_flags'),
-            avatar_decoration_data=data.get('avatar_decoration_data'),
-            primary_guild=data.get('primary_guild'),
-            clan=data.get('clan'),
-            premium=data.get('premium', False),
-            premium_type=data.get('premium_type'),
+            verified=data.get("verified", False),
+            id=data.get("id"),
+            username=data.get("username"),
+            global_name=data.get("global_name"),
+            discriminator=data.get("discriminator"),
+            avatar=data.get("avatar"),
+            public_flags=data.get("public_flags"),
+            avatar_decoration_data=data.get("avatar_decoration_data"),
+            primary_guild=data.get("primary_guild"),
+            clan=data.get("clan"),
+            premium=data.get("premium", False),
+            premium_type=data.get("premium_type"),
         )
+
 
 @dataclass
 class Author:
     """
     Represents a Discord user/author with their basic information.
-    
+
     Attributes:
         username (str): The user's username
         id (str): The user's unique ID
@@ -85,6 +90,7 @@ class Author:
         bot (Optional[bool]): Whether the user is a bot
         display_name (Optional[str]): The user's display name
     """
+
     username: str
     id: str
     global_name: Optional[str]
@@ -97,11 +103,12 @@ class Author:
     bot: Optional[bool] = False
     display_name: Optional[str] = None
 
+
 @dataclass
 class Member:
     """
     Represents a Discord guild member with their roles and settings.
-    
+
     Attributes:
         user (Optional[Author]): The user object for this member
         roles (List[str]): List of role IDs the member has
@@ -116,6 +123,7 @@ class Member:
         banner (Optional[str]): The member's banner hash
         avatar (Optional[str]): The member's guild-specific avatar hash
     """
+
     user: Optional[Author]
     roles: List[str]
     premium_since: Optional[str]
@@ -129,53 +137,60 @@ class Member:
     banner: Optional[str]
     avatar: Optional[str]
 
+
 @dataclass
 class MessageReference:
     """
     Represents a reference to another message (used for replies).
-    
+
     Attributes:
         message_id (str): The ID of the referenced message
         channel_id (str): The channel ID where the referenced message is
         guild_id (Optional[str]): The guild ID where the referenced message is
         type (Optional[int]): The type of reference
     """
+
     message_id: str
     channel_id: str
     guild_id: Optional[str]
     type: Optional[int] = 0
 
+
 @dataclass
 class Sticker:
     """
     Represents a Discord sticker.
-    
+
     Attributes:
         name (str): The name of the sticker
         id (str): The unique ID of the sticker
         format_type (int): The format type of the sticker
     """
+
     name: str
     id: str
     format_type: int
+
 
 @dataclass
 class EmbedProvider:
     """
     Represents a provider in a Discord embed.
-    
+
     Attributes:
         name (Optional[str]): The name of the provider
         url (Optional[str]): The URL of the provider
     """
+
     name: Optional[str] = None
     url: Optional[str] = None
+
 
 @dataclass
 class EmbedThumbnail:
     """
     Represents a thumbnail in a Discord embed.
-    
+
     Attributes:
         url (str): The source URL of the thumbnail
         proxy_url (Optional[str]): The proxied URL of the thumbnail
@@ -185,6 +200,7 @@ class EmbedThumbnail:
         placeholder_version (Optional[int]): The placeholder version
         flags (Optional[int]): The thumbnail flags
     """
+
     url: str
     proxy_url: Optional[str] = None
     height: Optional[int] = None
@@ -193,11 +209,12 @@ class EmbedThumbnail:
     placeholder_version: Optional[int] = None
     flags: Optional[int] = None
 
+
 @dataclass
 class Embed:
     """
     Represents a Discord embed.
-    
+
     Attributes:
         url (Optional[str]): The URL of the embed
         type (Optional[str]): The type of embed
@@ -207,6 +224,7 @@ class Embed:
         thumbnail (Optional[EmbedThumbnail]): The thumbnail information
         color (Optional[int]): The color code of the embed
     """
+
     url: Optional[str] = None
     type: Optional[str] = None
     title: Optional[str] = None
@@ -216,39 +234,40 @@ class Embed:
     color: Optional[int] = None
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Embed':
+    def from_dict(cls, data: Dict) -> "Embed":
         """
         Create an Embed instance from a dictionary of data.
-        
+
         Args:
             data (Dict): The raw embed data from Discord
-            
+
         Returns:
             Embed: A new Embed instance
         """
         provider = None
-        if 'provider' in data:
-            provider = EmbedProvider(**data['provider'])
-            
+        if "provider" in data:
+            provider = EmbedProvider(**data["provider"])
+
         thumbnail = None
-        if 'thumbnail' in data:
-            thumbnail = EmbedThumbnail(**data['thumbnail'])
-            
+        if "thumbnail" in data:
+            thumbnail = EmbedThumbnail(**data["thumbnail"])
+
         return cls(
-            url=data.get('url'),
-            type=data.get('type'),
-            title=data.get('title'),
-            description=data.get('description'),
+            url=data.get("url"),
+            type=data.get("type"),
+            title=data.get("title"),
+            description=data.get("description"),
             provider=provider,
             thumbnail=thumbnail,
-            color=data.get('color')
+            color=data.get("color"),
         )
+
 
 @dataclass
 class Attachment:
     """
     Represents a file attached to a Discord message.
-    
+
     Attributes:
         url (str): The source URL of the file
         size (int): The size of the file in bytes
@@ -258,6 +277,7 @@ class Attachment:
         content_type (Optional[str]): The MIME type of the file
         content_scan_version (Optional[int]): The content scan version
     """
+
     url: str
     size: int
     proxy_url: str
@@ -267,31 +287,32 @@ class Attachment:
     content_scan_version: Optional[int] = None
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Attachment':
+    def from_dict(cls, data: Dict) -> "Attachment":
         """
         Create an Attachment instance from a dictionary of data.
-        
+
         Args:
             data (Dict): The raw attachment data from Discord
-            
+
         Returns:
             Attachment: A new Attachment instance
         """
         return cls(
-            url=data['url'],
-            size=data['size'],
-            proxy_url=data['proxy_url'],
-            id=data['id'],
-            filename=data['filename'],
-            content_type=data.get('content_type'),
-            content_scan_version=data.get('content_scan_version')
+            url=data["url"],
+            size=data["size"],
+            proxy_url=data["proxy_url"],
+            id=data["id"],
+            filename=data["filename"],
+            content_type=data.get("content_type"),
+            content_scan_version=data.get("content_scan_version"),
         )
+
 
 @dataclass
 class Message:
     """
     Represents a Discord message with all its content and metadata.
-    
+
     Attributes:
         id (str): The message's unique ID
         type (int): The type of message
@@ -318,6 +339,7 @@ class Message:
         channel_type (Optional[int]): Type of the channel
         message_snapshots (Optional[List[Message]]): Snapshots of forwarded messages
     """
+
     id: Optional[str]
     type: int
     content: str
@@ -336,79 +358,81 @@ class Message:
     author: Optional[Author] = None
     guild_id: Optional[str] = None
     member: Optional[Member] = None
-    referenced_message: Optional['Message'] = None
+    referenced_message: Optional["Message"] = None
     message_reference: Optional[MessageReference] = None
     sticker_items: Optional[List[Sticker]] = None
     position: Optional[int] = None
     channel_type: Optional[int] = None
-    message_snapshots: Optional[List['Message']] = None
+    message_snapshots: Optional[List["Message"]] = None
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Message':
+    def from_dict(cls, data: Dict) -> "Message":
         """
         Create a Message instance from a dictionary of data.
-        
+
         Args:
             data (Dict): The raw message data from Discord
-            
+
         Returns:
             Message: A new Message instance with the parsed data
         """
         # Parse author if exists
         author = None
-        if 'author' in data:
-            author_data = {k: v for k, v in data['author'].items() if k != 'member'}
+        if "author" in data:
+            author_data = {k: v for k, v in data["author"].items() if k != "member"}
             author = Author(**author_data)
-        
+
         # Parse mentions into Author objects
         mentions = []
-        if 'mentions' in data:
-            for mention in data['mentions']:
+        if "mentions" in data:
+            for mention in data["mentions"]:
                 # Remove member field from mention data before creating Author
-                mention_data = {k: v for k, v in mention.items() if k != 'member'}
+                mention_data = {k: v for k, v in mention.items() if k != "member"}
                 mentions.append(Author(**mention_data))
-        
+
         # Parse attachments into Attachment objects
         attachments = []
-        if 'attachments' in data:
-            attachments = [Attachment.from_dict(attachment) for attachment in data['attachments']]
-            
+        if "attachments" in data:
+            attachments = [
+                Attachment.from_dict(attachment) for attachment in data["attachments"]
+            ]
+
         # Parse embeds into Embed objects
         embeds = []
-        if 'embeds' in data:
-            embeds = [Embed.from_dict(embed) for embed in data['embeds']]
-        
+        if "embeds" in data:
+            embeds = [Embed.from_dict(embed) for embed in data["embeds"]]
+
         # Parse member if exists
         member = None
-        if 'member' in data:
-            member_data = data['member'].copy()
-            member_data['user'] = author  # Use the author as the member's user
+        if "member" in data:
+            member_data = data["member"].copy()
+            member_data["user"] = author  # Use the author as the member's user
             member = Member(**member_data)
-        
+
         # Parse message reference if exists
         message_reference = None
-        if 'message_reference' in data:
-            message_reference = MessageReference(**data['message_reference'])
-        
+        if "message_reference" in data:
+            message_reference = MessageReference(**data["message_reference"])
+
         # Parse referenced message if exists
         referenced_message = None
-        if 'referenced_message' in data and data['referenced_message']:
-            referenced_message = cls.from_dict(data['referenced_message'])
-        
+        if "referenced_message" in data and data["referenced_message"]:
+            referenced_message = cls.from_dict(data["referenced_message"])
+
         # Parse stickers if exist
         sticker_items = None
-        if 'sticker_items' in data:
-            sticker_items = [Sticker(**sticker) for sticker in data['sticker_items']]
-        
+        if "sticker_items" in data:
+            sticker_items = [Sticker(**sticker) for sticker in data["sticker_items"]]
+
         # Parse message snapshots if exist
         message_snapshots = None
-        if 'message_snapshots' in data:
+        if "message_snapshots" in data:
             # Extract the actual message data from the snapshot structure
             snapshots = []
-            for snapshot in data['message_snapshots']:
-                if isinstance(snapshot, dict) and 'message' in snapshot:
+            for snapshot in data["message_snapshots"]:
+                if isinstance(snapshot, dict) and "message" in snapshot:
                     # The message data is nested inside a 'message' key
-                    snapshots.append(Message.from_dict(snapshot['message']))
+                    snapshots.append(Message.from_dict(snapshot["message"]))
                 else:
                     # Direct message data
                     snapshots.append(Message.from_dict(snapshot))
@@ -416,30 +440,30 @@ class Message:
 
         # Create message instance
         return cls(
-            id=data.get('id'),
-            type=data.get('type', 0),
-            content=data.get('content', ''),
-            channel_id=data.get('channel_id', ''),
-            timestamp=data.get('timestamp', ''),
-            edited_timestamp=data.get('edited_timestamp'),
-            tts=data.get('tts', False),
-            mention_everyone=data.get('mention_everyone', False),
+            id=data.get("id"),
+            type=data.get("type", 0),
+            content=data.get("content", ""),
+            channel_id=data.get("channel_id", ""),
+            timestamp=data.get("timestamp", ""),
+            edited_timestamp=data.get("edited_timestamp"),
+            tts=data.get("tts", False),
+            mention_everyone=data.get("mention_everyone", False),
             mentions=mentions,
-            mention_roles=data.get('mention_roles', []),
+            mention_roles=data.get("mention_roles", []),
             attachments=attachments,
             embeds=embeds,
-            pinned=data.get('pinned', False),
-            flags=data.get('flags', 0),
-            components=data.get('components', []),
+            pinned=data.get("pinned", False),
+            flags=data.get("flags", 0),
+            components=data.get("components", []),
             author=author,
-            guild_id=data.get('guild_id'),
+            guild_id=data.get("guild_id"),
             member=member,
             referenced_message=referenced_message,
             message_reference=message_reference,
             sticker_items=sticker_items,
-            position=data.get('position'),
-            channel_type=data.get('channel_type'),
-            message_snapshots=message_snapshots
+            position=data.get("position"),
+            channel_type=data.get("channel_type"),
+            message_snapshots=message_snapshots,
         )
 
     def is_reply(self) -> bool:
@@ -473,64 +497,67 @@ class Message:
                 base += f"  - {snapshot.author.username if snapshot.author else 'Unknown'}: {snapshot.content}\n"
             base += ")"
         return base
-        
+
+
 @dataclass
 class DeletedMessage:
     """
     Represents a deleted Discord message with minimal information.
-    
+
     Attributes:
         id (str): The deleted message's ID
         channel_id (str): The channel where the message was
         guild_id (Optional[str]): The guild where the message was
     """
+
     id: str
     channel_id: str
     guild_id: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'DeletedMessage':
+    def from_dict(cls, data: Dict) -> "DeletedMessage":
         """
         Create a DeletedMessage instance from a dictionary of data.
-        
+
         Args:
             data (Dict): The raw deleted message data from Discord
-            
+
         Returns:
             DeletedMessage: A new DeletedMessage instance
         """
         return cls(
-            id=data['id'],
-            channel_id=data['channel_id'],
-            guild_id=data.get('guild_id')
+            id=data["id"], channel_id=data["channel_id"], guild_id=data.get("guild_id")
         )
 
     def __str__(self) -> str:
         """
         Get a string representation of the deleted message.
-        
+
         Returns:
             str: A string showing the message ID and channel
         """
         return f"DeletedMessage(id={self.id}, channel_id={self.channel_id})"
 
+
 @dataclass
 class Emoji:
     """
     Represents a Discord emoji.
-    
+
     Attributes:
         name (str): The name of the emoji
         id (Optional[str]): The unique ID of the emoji (None for Unicode emojis)
     """
+
     name: str
     id: Optional[str]
+
 
 @dataclass
 class Reaction:
     """
     Represents a reaction to a Discord message.
-    
+
     Attributes:
         user_id (str): The ID of the user who reacted
         type (int): The type of reaction
@@ -542,6 +569,7 @@ class Reaction:
         message_author_id (Optional[str]): The ID of the message author
         member (Optional[Member]): The member who reacted
     """
+
     user_id: str
     type: int
     message_id: str
@@ -553,41 +581,41 @@ class Reaction:
     member: Optional[Member] = None
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Reaction':
+    def from_dict(cls, data: Dict) -> "Reaction":
         """
         Create a Reaction instance from a dictionary of data.
-        
+
         Args:
             data (Dict): The raw reaction data from Discord
-            
+
         Returns:
             Reaction: A new Reaction instance
         """
-        emoji = Emoji(**data['emoji'])
-        
+        emoji = Emoji(**data["emoji"])
+
         member = None
-        if 'member' in data:
-            user = Author(**data['member']['user'])
-            member_data = data['member'].copy()
-            member_data['user'] = user
+        if "member" in data:
+            user = Author(**data["member"]["user"])
+            member_data = data["member"].copy()
+            member_data["user"] = user
             member = Member(**member_data)
-        
+
         return cls(
-            user_id=data['user_id'],
-            type=data['type'],
-            message_id=data['message_id'],
+            user_id=data["user_id"],
+            type=data["type"],
+            message_id=data["message_id"],
             emoji=emoji,
-            channel_id=data['channel_id'],
-            burst=data['burst'],
-            guild_id=data['guild_id'],
-            message_author_id=data.get('message_author_id'),
-            member=member
+            channel_id=data["channel_id"],
+            burst=data["burst"],
+            guild_id=data["guild_id"],
+            message_author_id=data.get("message_author_id"),
+            member=member,
         )
 
     def __str__(self) -> str:
         """
         Get a string representation of the reaction.
-        
+
         Returns:
             str: A string showing the emoji, message, and user info
         """
@@ -596,11 +624,12 @@ class Reaction:
             base += f" by {self.member.user.username}"
         return base
 
+
 @dataclass
 class TypingEvent:
     """
     Represents a typing indicator event in Discord.
-    
+
     Attributes:
         user_id (str): The ID of the user who is typing
         timestamp (int): When the typing started
@@ -608,6 +637,7 @@ class TypingEvent:
         guild_id (str): The guild where the typing occurred
         member (Optional[Member]): The member who is typing
     """
+
     user_id: str
     timestamp: int
     channel_id: str
@@ -615,35 +645,35 @@ class TypingEvent:
     member: Optional[Member] = None
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'TypingEvent':
+    def from_dict(cls, data: Dict) -> "TypingEvent":
         """
         Create a TypingEvent instance from a dictionary of data.
-        
+
         Args:
             data (Dict): The raw typing event data from Discord
-            
+
         Returns:
             TypingEvent: A new TypingEvent instance
         """
         member = None
-        if 'member' in data:
-            user = Author(**data['member']['user'])
-            member_data = data['member'].copy()
-            member_data['user'] = user
+        if "member" in data:
+            user = Author(**data["member"]["user"])
+            member_data = data["member"].copy()
+            member_data["user"] = user
             member = Member(**member_data)
-        
+
         return cls(
-            user_id=data['user_id'],
-            timestamp=data['timestamp'],
-            channel_id=data['channel_id'],
-            guild_id=data['guild_id'],
-            member=member
+            user_id=data["user_id"],
+            timestamp=data["timestamp"],
+            channel_id=data["channel_id"],
+            guild_id=data["guild_id"],
+            member=member,
         )
 
     def __str__(self) -> str:
         """
         Get a string representation of the typing event.
-        
+
         Returns:
             str: A string showing who is typing and where
         """
@@ -652,4 +682,4 @@ class TypingEvent:
             base += f" by {self.member.user.username}"
             if self.member.nick:
                 base += f" ({self.member.nick})"
-        return base 
+        return base
