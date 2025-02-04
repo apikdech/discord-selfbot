@@ -8,6 +8,7 @@ User=apikdech
 Group=apikdech
 WorkingDirectory=/opt/discord-bot
 Environment=PATH=/opt/discord-bot/venv/bin
+Environment=TZ=Asia/Jakarta
 ExecStart=/opt/discord-bot/venv/bin/python count.py
 Restart=always
 RestartSec=10
