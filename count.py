@@ -78,7 +78,7 @@ async def send_number_updates(bot: DiscordSelfBot):
             cooldown = cooldown_min + random.uniform(0, cooldown_max - cooldown_min)
             if (
                 time_diff > cooldown
-            ):  # and check_reaction_message(channel_id, last_number.message_id):
+            ) and check_reaction_message(channel_id, last_number.message_id):
                 log.info("Sending number updates")
                 await bot.trigger_typing(channel_id)
                 await bot.send_message(channel_id, str(last_number.number + 1))
@@ -152,6 +152,7 @@ async def main():
                 cooldown_max = message.content.split()[2]
                 cooldown_min = float(cooldown_min)
                 cooldown_max = float(cooldown_max)
+                await bot.send_message(message.channel_id, f"Updated the cooldown to be [{cooldown_min}, {cooldown_max}]")
                 return
 
         first_word = message.content.split()[0]
