@@ -62,9 +62,13 @@ def check_reaction_message(channel_id: str, message_id: str) -> bool:
 last_typing_timestamp = 0
 cooldown_min = 0.1
 cooldown_max = 0.5
+send_number = True
 
 
 async def send_number_updates(bot: DiscordSelfBot):
+    if send_number == False:
+        return
+
     now = datetime.now().astimezone()
     for channel_id in message_numbers.keys():
         last_number = get_last_message_number(channel_id)
@@ -143,6 +147,20 @@ async def main():
                 number = evaluate_number(number)
                 if number >= 1:
                     await bot.send_message(message.channel_id, str(number))
+                return
+
+            if message.content == "<:PauseBusiness:941975578729402408>":
+                global send_number
+
+                send_number = False
+                await bot.send_message(message.channel_id, "<:PauseBusiness:941975578729402408>")
+                return
+
+            if message.content == "<:sadcatplease:898223330073673798>":
+                global send_number
+
+                send_number = True
+                await bot.send_message(message.channel_id, "<:sadcatplease:898223330073673798>")
                 return
 
             if message.content.startswith("cooldown"):
