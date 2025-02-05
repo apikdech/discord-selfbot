@@ -283,9 +283,9 @@ async def main():
                 message.author.id,
             )
             # Immediately return if the number is valid
-            if send_number.get(message.channel_id, False) == True and check_reaction_message(message.channel_id, message.id):
+            if send_number.get(message.channel_id, False) == True:
                 # await bot.trigger_typing(message.channel_id)
-                await bot.send_message(
+                bot.send_message(
                     message.channel_id,
                     str(number + 1),
                 )
@@ -362,7 +362,7 @@ async def main():
     #     coalesce=True,
     #     misfire_grace_time=None,
     #     args=[bot],
-    # )
+    # # )
     # scheduler.add_job(
     #     unstuck_counter,
     #     trigger="interval",
