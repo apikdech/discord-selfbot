@@ -169,15 +169,15 @@ async def main():
             last_typing_timestamp = int(message.timestamp) + 10
             return
 
+        if message.content.startswith("continue") and message.content.endswith(":speaking_head:"):
+            counter_stuck_times[message.channel_id] = 0
+            message_numbers[message.channel_id] = deque(maxlen=10)
+            await bot.send_message(
+                message.channel_id, "c!server"
+            )
+            return
+        
         if message.author.id == OWNER_ID:
-            if message.content.startswith("continue") and message.content.endswith(":speaking_head:"):
-                counter_stuck_times[message.channel_id] = 0
-                message_numbers[message.channel_id] = deque(maxlen=10)
-                await bot.send_message(
-                    message.channel_id, "c!server"
-                )
-                return
-
             if message.content.startswith("<:PauseBusiness:941975578729402408>"):
                 send_number[message.channel_id] = False
                 await bot.send_message(
