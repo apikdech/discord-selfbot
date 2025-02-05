@@ -281,10 +281,16 @@ async def main():
             # Immediately return if the number is valid
             if send_number.get(message.channel_id, False) == True:
                 log.info(f"Sending number: {number + 1}")
-                task = asyncio.create_task(bot.send_message(
-                    message.channel_id,
-                    str(number + 1),
-                ))
+                
+                async def send_with_logging():
+                    try:
+                        await bot.send_message(message.channel_id, str(number + 1))
+                        log.info(f"Successfully sent number: {number + 1}")
+                    except Exception as e:
+                        log.error(f"Failed to send number {number + 1}: {str(e)}")
+                        # Optionally retry or handle the error
+                
+                task = asyncio.create_task(send_with_logging())
                 # Add the task to bot's active tasks set
                 bot.active_tasks.add(task)
                 # Remove the task when it's done
