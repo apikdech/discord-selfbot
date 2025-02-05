@@ -64,7 +64,7 @@ class DiscordSelfBot:
         monitored_channels: List[int] = None,
         monitored_guilds: List[int] = None,
         debug: bool = False,
-        max_concurrent_tasks: int = 30,
+        max_concurrent_tasks: int = 50,
     ):
         """
         Initialize the Discord self-bot.
