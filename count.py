@@ -56,7 +56,7 @@ def get_largest_message_number(channel_id: str) -> MessageNumber | None:
 def check_reaction_message(channel_id: str, message_id: str) -> bool:
     if reaction_listen_config.get(channel_id, True) == False:
         return True
-
+        
     if channel_id not in reaction_messages:
         return False
     
@@ -70,7 +70,7 @@ cooldowns: Dict[str, Tuple[float, float]] = {
 }
 send_number: Dict[str, bool] = {
     "1330033413524033537": False,
-    "1330237721557471232": False, 
+    "1330237721557471232": True, 
 }
 counter_stuck_times: Dict[str, int] = {}
 send_stuck_help: Dict[str, bool] = {}
@@ -82,10 +82,6 @@ reaction_listen_config: Dict[str, bool] = {
     "1330033413524033537": False,
     "1330237721557471232": False,
 }
-# largest_valid_number: Dict[str, int] = {
-#     "1330033413524033537": 0,
-#     "1330237721557471232": 0,
-# }
 
 
 async def send_number_updates(bot: DiscordSelfBot):
@@ -95,30 +91,23 @@ async def send_number_updates(bot: DiscordSelfBot):
             largest_number = get_largest_message_number(channel_id)
             if largest_number and largest_number.author_id != bot.user.id:
                 # Convert the timestamp string to datetime object
-                last_timestamp = datetime.fromisoformat(largest_number.timestamp)
-                time_diff = (now - last_timestamp).total_seconds()
-                cooldown = cooldowns[channel_id][0] + random.uniform(0, cooldowns[channel_id][1] - cooldowns[channel_id][0])
-
-                if (time_diff > cooldown) and check_reaction_message(
-                    channel_id, largest_number.message_id
-                ):
-                    log.info("Sending number updates")
-                    message_numbers[channel_id] = deque(maxlen=10)
-                    await bot.trigger_typing(channel_id)
-                    await bot.send_message(channel_id, str(largest_number.number + 1))
-                    send_stuck_help[channel_id] = False
-                    counter_stuck_times[channel_id] = 0
-                else:
-                    response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
-                    log.info(response)
-
-            if (
-                counter_stuck_times.get(channel_id, 0) > 150
-                and send_stuck_help.get(channel_id, False) == False
-            ):
-                await bot.send_message(channel_id, "c!server")
+                # last_timestamp = datetime.fromisoformat(largest_number.timestamp)
+                # time_diff = (now - last_timestamp).total_seconds()
+                # cooldown = cooldowns[channel_id][0] + random.uniform(0, cooldowns[channel_id][1] - cooldowns[channel_id][0])
+                log.info("Sending number updates")
+                message_numbers[channel_id] = deque(maxlen=10)
+                # Fire and forget the message sending
+                asyncio.create_task(bot.send_message(channel_id, str(largest_number.number + 1)))
+                send_stuck_help[channel_id] = False
                 counter_stuck_times[channel_id] = 0
 
+            if (
+                counter_stuck_times.get(channel_id, 0) > 40
+                and send_stuck_help.get(channel_id, False) == False
+            ):
+                # Fire and forget the server check message
+                asyncio.create_task(bot.send_message(channel_id, "c!server"))
+                counter_stuck_times[channel_id] = 0
                 send_stuck_help[channel_id] = True
             else:
                 if send_stuck_help.get(channel_id, False) == False:
@@ -169,15 +158,15 @@ async def main():
             last_typing_timestamp = int(message.timestamp) + 10
             return
 
-        if "continue" in message.content and "🗣️" in message.content:
-            counter_stuck_times[message.channel_id] = 0
-            message_numbers[message.channel_id] = deque(maxlen=10)
-            await bot.send_message(
-                message.channel_id, "c!server"
-            )
-            return
-        
         if message.author.id == OWNER_ID:
+            if message.content.startswith("continue") and message.content.endswith("🗣️"):
+                counter_stuck_times[message.channel_id] = 0
+                message_numbers[message.channel_id] = deque(maxlen=10)
+                await bot.send_message(
+                    message.channel_id, "c!server"
+                )
+                return
+
             if message.content.startswith("<:PauseBusiness:941975578729402408>"):
                 send_number[message.channel_id] = False
                 await bot.send_message(
@@ -263,49 +252,18 @@ async def main():
         if len(message.content.split()) == 0:
             return
 
-        log.info(f"Ma bro: {message}")
         first_word = message.content.split()[0]
 
         number = evaluate_number(first_word)
 
-        log.info(f"Number: {number}")
-
         if number >= 1:
-            # add_message_number(
-            #     message.channel_id,
-            #     message.id,
-            #     number,
-            #     message.timestamp,
-            #     message.author.id,
-            # )
-            # Immediately return if the number is valid
-            if send_number.get(message.channel_id, False) == True:
-                log.info(f"Sending number: {number + 1}")
-                
-                async def send_with_logging():
-                    try:
-                        # Try sending up to 3 times
-                        for attempt in range(3):
-                            try:
-                                sent_message = await bot.send_message(message.channel_id, str(number + 1))
-                                if sent_message and sent_message.id:
-                                    log.info(f"Successfully sent number: {number + 1} (message_id: {sent_message.id}, content: {sent_message.content})")
-                                    return
-                                else:
-                                    log.warn(f"Send returned invalid response for {number + 1} (attempt {attempt + 1})")
-                                    if attempt < 2:
-                                        await asyncio.sleep(1)
-                            except Exception as e:
-                                log.error(f"Attempt {attempt + 1} failed to send number {number + 1}: {str(e)}")
-                                if attempt < 2:  # Don't sleep after last attempt
-                                    await asyncio.sleep(1)  # Wait a second before retrying
-                        
-                    except Exception as e:
-                        log.error(f"Critical error sending number {number + 1}: {str(e)}")
-                
-                task = asyncio.create_task(send_with_logging())
-                bot.active_tasks.add(task)
-                task.add_done_callback(bot.active_tasks.discard)
+            add_message_number(
+                message.channel_id,
+                message.id,
+                number,
+                message.timestamp,
+                message.author.id,
+            )
             return
         elif number == 0:
             return
@@ -329,6 +287,17 @@ async def main():
             message.channel_id, message.id, message.author.id, message.content
         )
 
+    @bot.on_event(EventType.MESSAGE_UPDATE)
+    async def handle_message_update(message: Message):
+        log.info(f"Updated message: {message}")
+        log.debug(f"New content: {message.content}")
+        if message.referenced_message:
+            log.debug(f"Original message: {message.referenced_message.content}")
+
+    @bot.on_event(EventType.MESSAGE_DELETE)
+    async def handle_message_delete(message: DeletedMessage):
+        log.info(f"Deleted message: {message}")
+
     @bot.on_event(EventType.MESSAGE_REACTION_ADD)
     async def handle_reaction_add(reaction: Reaction):
         log.info(f"Reaction added: {reaction}")
@@ -348,18 +317,28 @@ async def main():
                 reaction_messages[reaction.channel_id] = deque(maxlen=10)
             reaction_messages[reaction.channel_id].append(reaction.message_id)
 
+    @bot.on_event(EventType.MESSAGE_REACTION_REMOVE)
+    async def handle_reaction_remove(reaction: Reaction):
+        log.info(f"Reaction removed: {reaction}")
+
+    @bot.on_event(EventType.TYPING_START)
+    async def handle_typing(typing: TypingEvent):
+        log.info(f"Typing started: {typing}")
+        global last_typing_timestamp
+        last_typing_timestamp = typing.timestamp
+
     # Initialize and start the scheduler
-    # scheduler = AsyncIOScheduler()
-    # scheduler.add_job(
-    #     send_number_updates,
-    #     trigger="interval",
-    #     seconds=0.1,
-    #     max_instances=1,
-    #     coalesce=True,
-    #     misfire_grace_time=None,
-    #     args=[bot],
-    # )
-    # scheduler.start()
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        send_number_updates,
+        trigger="interval",
+        seconds=0.5,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=None,
+        args=[bot],
+    )
+    scheduler.start()
 
     # Start the bot
     log.info("Starting bot...")
