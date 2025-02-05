@@ -263,9 +263,12 @@ async def main():
         if len(message.content.split()) == 0:
             return
 
+        log.info(f"Ma bro: {message}")
         first_word = message.content.split()[0]
 
         number = evaluate_number(first_word)
+
+        log.info(f"Number: {number}")
 
         if number >= 1:
             # add_message_number(
@@ -278,6 +281,7 @@ async def main():
             # Immediately return if the number is valid
             if send_number.get(message.channel_id, False) == True: # and check_reaction_message(message.channel_id, message.id):
                 # await bot.trigger_typing(message.channel_id)
+                log.info(f"Sending number: {number + 1}")
                 asyncio.create_task(bot.send_message(
                     message.channel_id,
                     str(number + 1),
