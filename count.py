@@ -284,16 +284,27 @@ async def main():
                 
                 async def send_with_logging():
                     try:
-                        await bot.send_message(message.channel_id, str(number + 1))
-                        log.info(f"Successfully sent number: {number + 1}")
+                        # Try sending up to 3 times
+                        for attempt in range(3):
+                            try:
+                                sent_message = await bot.send_message(message.channel_id, str(number + 1))
+                                if sent_message and sent_message.id:
+                                    log.info(f"Successfully sent number: {number + 1} (message_id: {sent_message.id}, content: {sent_message.content})")
+                                    return
+                                else:
+                                    log.warn(f"Send returned invalid response for {number + 1} (attempt {attempt + 1})")
+                                    if attempt < 2:
+                                        await asyncio.sleep(1)
+                            except Exception as e:
+                                log.error(f"Attempt {attempt + 1} failed to send number {number + 1}: {str(e)}")
+                                if attempt < 2:  # Don't sleep after last attempt
+                                    await asyncio.sleep(1)  # Wait a second before retrying
+                        
                     except Exception as e:
-                        log.error(f"Failed to send number {number + 1}: {str(e)}")
-                        # Optionally retry or handle the error
+                        log.error(f"Critical error sending number {number + 1}: {str(e)}")
                 
                 task = asyncio.create_task(send_with_logging())
-                # Add the task to bot's active tasks set
                 bot.active_tasks.add(task)
-                # Remove the task when it's done
                 task.add_done_callback(bot.active_tasks.discard)
             return
         elif number == 0:
