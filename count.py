@@ -87,48 +87,47 @@ reaction_listen_config: Dict[str, bool] = {
 async def send_number_updates(bot: DiscordSelfBot):
     now = datetime.now().astimezone()
     for channel_id in SENDING_CHANNELS:
-        if send_number.get(channel_id, True) == False:
-            return
-        largest_number = get_largest_message_number(channel_id)
-        if largest_number and largest_number.author_id != bot.user.id:
-            # Convert the timestamp string to datetime object
-            last_timestamp = datetime.fromisoformat(largest_number.timestamp)
-            time_diff = (now - last_timestamp).total_seconds()
-            cooldown = cooldowns[channel_id][0] + random.uniform(0, cooldowns[channel_id][1] - cooldowns[channel_id][0])
+        if send_number.get(channel_id, False) == True:
+            largest_number = get_largest_message_number(channel_id)
+            if largest_number and largest_number.author_id != bot.user.id:
+                # Convert the timestamp string to datetime object
+                last_timestamp = datetime.fromisoformat(largest_number.timestamp)
+                time_diff = (now - last_timestamp).total_seconds()
+                cooldown = cooldowns[channel_id][0] + random.uniform(0, cooldowns[channel_id][1] - cooldowns[channel_id][0])
 
-            if (time_diff > cooldown) and check_reaction_message(
-                channel_id, largest_number.message_id
+                if (time_diff > cooldown) and check_reaction_message(
+                    channel_id, largest_number.message_id
+                ):
+                    log.info("Sending number updates")
+                    await bot.trigger_typing(channel_id)
+                    await bot.send_message(channel_id, str(largest_number.number + 1))
+                    message_numbers[channel_id] = deque(maxlen=10)
+                    add_message_number(
+                        channel_id,
+                        largest_number.message_id,
+                        largest_number.number + 1,
+                        now.isoformat(),
+                        bot.user.id,
+                    )
+                    send_stuck_help[channel_id] = False
+                    counter_stuck_times[channel_id] = 0
+                else:
+                    response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
+                    log.info(response)
+
+            if (
+                counter_stuck_times.get(channel_id, 0) > 150
+                and send_stuck_help.get(channel_id, False) == False
             ):
-                log.info("Sending number updates")
-                await bot.trigger_typing(channel_id)
-                await bot.send_message(channel_id, str(largest_number.number + 1))
-                message_numbers[channel_id] = deque(maxlen=10)
-                add_message_number(
-                    channel_id,
-                    largest_number.message_id,
-                    largest_number.number + 1,
-                    now.isoformat(),
-                    bot.user.id,
-                )
-                send_stuck_help[channel_id] = False
+                await bot.send_message(channel_id, "c!server")
                 counter_stuck_times[channel_id] = 0
+
+                send_stuck_help[channel_id] = True
             else:
-                response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
-                log.info(response)
-
-        if (
-            counter_stuck_times.get(channel_id, 0) > 150
-            and send_stuck_help.get(channel_id, False) == False
-        ):
-            await bot.send_message(channel_id, "c!server")
-            counter_stuck_times[channel_id] = 0
-
-            send_stuck_help[channel_id] = True
-        else:
-            if send_stuck_help.get(channel_id, False) == False:
-                counter_stuck_times[channel_id] = (
-                    counter_stuck_times.get(channel_id, 0) + 1
-                )
+                if send_stuck_help.get(channel_id, False) == False:
+                    counter_stuck_times[channel_id] = (
+                        counter_stuck_times.get(channel_id, 0) + 1
+                    )
 
 
 async def main():
@@ -167,8 +166,6 @@ async def main():
         log.info(f"New message: {message}")
         if message.author.id == bot.user.id:
             return
-
-        global send_number
 
         if message.content == ".":
             global last_typing_timestamp
