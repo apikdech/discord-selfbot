@@ -169,7 +169,7 @@ async def main():
             last_typing_timestamp = int(message.timestamp) + 10
             return
 
-        if message.content.startswith("continue") and message.content.endswith(":speaking_head:"):
+        if "continue" in message.content and "speaking_head" in message.content:
             counter_stuck_times[message.channel_id] = 0
             message_numbers[message.channel_id] = deque(maxlen=10)
             await bot.send_message(
