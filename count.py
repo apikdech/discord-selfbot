@@ -126,6 +126,13 @@ async def send_number_updates(bot: DiscordSelfBot):
                         counter_stuck_times.get(channel_id, 0) + 1
                     )
 
+async def unstuck_counter(bot: DiscordSelfBot):
+    for channel_id in SENDING_CHANNELS:
+        if send_number.get(channel_id, False) == False:
+            continue
+
+        await bot.send_message(channel_id, "c!server")
+
 
 async def main():
     # Load environment variables from .env file
@@ -277,7 +284,7 @@ async def main():
             )
             # Immediately return if the number is valid
             if send_number.get(message.channel_id, False) == True and check_reaction_message(message.channel_id, message.id):
-                await bot.trigger_typing(message.channel_id)
+                # await bot.trigger_typing(message.channel_id)
                 await bot.send_message(
                     message.channel_id,
                     str(number + 1),
@@ -346,7 +353,7 @@ async def main():
         last_typing_timestamp = typing.timestamp
 
     # Initialize and start the scheduler
-    # scheduler = AsyncIOScheduler()
+    scheduler = AsyncIOScheduler()
     # scheduler.add_job(
     #     send_number_updates,
     #     trigger="interval",
@@ -356,7 +363,16 @@ async def main():
     #     misfire_grace_time=None,
     #     args=[bot],
     # )
-    # scheduler.start()
+    scheduler.add_job(
+        unstuck_counter,
+        trigger="interval",
+        seconds=30,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=None,
+        args=[bot],
+    )
+    scheduler.start()
 
     # Start the bot
     log.info("Starting bot...")
