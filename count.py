@@ -285,7 +285,7 @@ async def main():
             # Immediately return if the number is valid
             if send_number.get(message.channel_id, False) == True:
                 # await bot.trigger_typing(message.channel_id)
-                bot.send_message(
+                await bot.send_message(
                     message.channel_id,
                     str(number + 1),
                 )
