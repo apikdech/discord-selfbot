@@ -353,7 +353,7 @@ async def main():
         last_typing_timestamp = typing.timestamp
 
     # Initialize and start the scheduler
-    scheduler = AsyncIOScheduler()
+    # scheduler = AsyncIOScheduler()
     # scheduler.add_job(
     #     send_number_updates,
     #     trigger="interval",
@@ -363,16 +363,16 @@ async def main():
     #     misfire_grace_time=None,
     #     args=[bot],
     # )
-    scheduler.add_job(
-        unstuck_counter,
-        trigger="interval",
-        seconds=30,
-        max_instances=1,
-        coalesce=True,
-        misfire_grace_time=None,
-        args=[bot],
-    )
-    scheduler.start()
+    # scheduler.add_job(
+    #     unstuck_counter,
+    #     trigger="interval",
+    #     seconds=30,
+    #     max_instances=1,
+    #     coalesce=True,
+    #     misfire_grace_time=None,
+    #     args=[bot],
+    # )
+    # scheduler.start()
 
     # Start the bot
     log.info("Starting bot...")
