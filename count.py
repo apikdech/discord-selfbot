@@ -74,6 +74,8 @@ async def send_number_updates(bot: DiscordSelfBot):
 
     now = datetime.now().astimezone()
     for channel_id in message_numbers.keys():
+        global send_stuck_help
+
         largest_number = get_largest_message_number(channel_id)
         if largest_number:
             if largest_number.author_id == bot.user.id:
@@ -83,14 +85,13 @@ async def send_number_updates(bot: DiscordSelfBot):
             time_diff = (now - last_timestamp).total_seconds()
             cooldown = cooldown_min + random.uniform(0, cooldown_max - cooldown_min)
 
-            global send_stuck_help
-
             if (time_diff > cooldown) and check_reaction_message(
                 channel_id, largest_number.message_id
             ):
                 log.info("Sending number updates")
                 await bot.trigger_typing(channel_id)
                 await bot.send_message(channel_id, str(largest_number.number + 1))
+                message_numbers[channel_id] = deque(maxlen=10)
                 add_message_number(
                     channel_id,
                     largest_number.message_id,
@@ -99,20 +100,21 @@ async def send_number_updates(bot: DiscordSelfBot):
                     bot.user.id,
                 )
                 send_stuck_help = False
-            elif (
-                counter_stuck_times.get(channel_id, 0) > 10 and send_stuck_help == False
-            ):
-                await bot.send_message(channel_id, "c!server")
                 counter_stuck_times[channel_id] = 0
-
-                send_stuck_help = True
             else:
-                if send_stuck_help == False:
-                    counter_stuck_times[channel_id] = (
-                        counter_stuck_times.get(channel_id, 0) + 1
-                    )
                 response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
                 log.info(response)
+
+        elif counter_stuck_times.get(channel_id, 0) > 10 and send_stuck_help == False:
+            await bot.send_message(channel_id, "c!server")
+            counter_stuck_times[channel_id] = 0
+
+            send_stuck_help = True
+        else:
+            if send_stuck_help == False:
+                counter_stuck_times[channel_id] = (
+                    counter_stuck_times.get(channel_id, 0) + 1
+                )
 
 
 async def main():
@@ -165,6 +167,8 @@ async def main():
                 number = evaluate_number(number)
                 if number >= 1:
                     await bot.send_message(message.channel_id, str(number))
+                    counter_stuck_times[message.channel_id] = 0
+                    message_numbers[message.channel_id] = deque(maxlen=10)
                 return
 
             if message.content == "<:PauseBusiness:941975578729402408>":
@@ -227,7 +231,7 @@ async def main():
 
                     send_stuck_help = False
                     send_number = True
-
+                    message_numbers[message.channel_id] = deque(maxlen=10)
                     await bot.send_message(
                         message.channel_id,
                         str(current_number + 1),
