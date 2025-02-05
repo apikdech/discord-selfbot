@@ -56,7 +56,7 @@ def get_largest_message_number(channel_id: str) -> MessageNumber | None:
 def check_reaction_message(channel_id: str, message_id: str) -> bool:
     if reaction_listen_config.get(channel_id, True) == False:
         return True
-
+        
     if channel_id not in reaction_messages:
         return False
     
@@ -82,10 +82,6 @@ reaction_listen_config: Dict[str, bool] = {
     "1330033413524033537": False,
     "1330237721557471232": False,
 }
-# largest_valid_number: Dict[str, int] = {
-#     "1330033413524033537": 0,
-#     "1330237721557471232": 0,
-# }
 
 
 async def send_number_updates(bot: DiscordSelfBot):
@@ -125,13 +121,6 @@ async def send_number_updates(bot: DiscordSelfBot):
                     counter_stuck_times[channel_id] = (
                         counter_stuck_times.get(channel_id, 0) + 1
                     )
-
-async def unstuck_counter(bot: DiscordSelfBot):
-    for channel_id in SENDING_CHANNELS:
-        if send_number.get(channel_id, False) == False:
-            continue
-
-        await bot.send_message(channel_id, "c!server")
 
 
 async def main():
@@ -176,15 +165,15 @@ async def main():
             last_typing_timestamp = int(message.timestamp) + 10
             return
 
-        if "continue" in message.content and "🗣️" in message.content:
-            counter_stuck_times[message.channel_id] = 0
-            message_numbers[message.channel_id] = deque(maxlen=10)
-            await bot.send_message(
-                message.channel_id, "c!server"
-            )
-            return
-        
         if message.author.id == OWNER_ID:
+            if message.content.startswith("continue") and message.content.endswith("🗣️"):
+                counter_stuck_times[message.channel_id] = 0
+                message_numbers[message.channel_id] = deque(maxlen=10)
+                await bot.send_message(
+                    message.channel_id, "c!server"
+                )
+                return
+
             if message.content.startswith("<:PauseBusiness:941975578729402408>"):
                 send_number[message.channel_id] = False
                 await bot.send_message(
@@ -282,13 +271,6 @@ async def main():
                 message.timestamp,
                 message.author.id,
             )
-            # Immediately return if the number is valid
-            if send_number.get(message.channel_id, False) == True:
-                # await bot.trigger_typing(message.channel_id)
-                await bot.send_message(
-                    message.channel_id,
-                    str(number + 1),
-                )
             return
         elif number == 0:
             return
@@ -353,26 +335,17 @@ async def main():
         last_typing_timestamp = typing.timestamp
 
     # Initialize and start the scheduler
-    # scheduler = AsyncIOScheduler()
-    # scheduler.add_job(
-    #     send_number_updates,
-    #     trigger="interval",
-    #     seconds=0.1,
-    #     max_instances=1,
-    #     coalesce=True,
-    #     misfire_grace_time=None,
-    #     args=[bot],
-    # # )
-    # scheduler.add_job(
-    #     unstuck_counter,
-    #     trigger="interval",
-    #     seconds=30,
-    #     max_instances=1,
-    #     coalesce=True,
-    #     misfire_grace_time=None,
-    #     args=[bot],
-    # )
-    # scheduler.start()
+    scheduler = AsyncIOScheduler()
+    scheduler.add_job(
+        send_number_updates,
+        trigger="interval",
+        seconds=0.1,
+        max_instances=1,
+        coalesce=True,
+        misfire_grace_time=None,
+        args=[bot],
+    )
+    scheduler.start()
 
     # Start the bot
     log.info("Starting bot...")
