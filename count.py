@@ -70,7 +70,7 @@ cooldowns: Dict[str, Tuple[float, float]] = {
 }
 send_number: Dict[str, bool] = {
     "1330033413524033537": False,
-    "1330237721557471232": True, 
+    "1330237721557471232": False, 
 }
 counter_stuck_times: Dict[str, int] = {}
 send_stuck_help: Dict[str, bool] = {}
@@ -279,13 +279,16 @@ async def main():
             #     message.author.id,
             # )
             # Immediately return if the number is valid
-            if send_number.get(message.channel_id, False) == True: # and check_reaction_message(message.channel_id, message.id):
-                # await bot.trigger_typing(message.channel_id)
+            if send_number.get(message.channel_id, False) == True:
                 log.info(f"Sending number: {number + 1}")
-                asyncio.create_task(bot.send_message(
+                task = asyncio.create_task(bot.send_message(
                     message.channel_id,
                     str(number + 1),
                 ))
+                # Add the task to bot's active tasks set
+                bot.active_tasks.add(task)
+                # Remove the task when it's done
+                task.add_done_callback(bot.active_tasks.discard)
             return
         elif number == 0:
             return
