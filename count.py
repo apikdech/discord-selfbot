@@ -109,7 +109,7 @@ async def send_number_updates(bot: DiscordSelfBot):
                     log.info(response)
 
             if (
-                counter_stuck_times.get(channel_id, 0) > 150
+                counter_stuck_times.get(channel_id, 0) > 20
                 and send_stuck_help.get(channel_id, False) == False
             ):
                 # Fire and forget the server check message
