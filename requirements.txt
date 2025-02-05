@@ -4,3 +4,4 @@ python-dotenv
 openai
 aiosqlite
 apscheduler 
+requests
