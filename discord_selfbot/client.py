@@ -477,7 +477,16 @@ class DiscordSelfBot:
         Start the bot and establish connection to Discord.
         This method handles the main event loop and reconnection logic.
         """
-        self.session = aiohttp.ClientSession()
+        # Configure connection pooling
+        connector = aiohttp.TCPConnector(
+            limit=100,  # Maximum number of concurrent connections
+            limit_per_host=20,  # Maximum number of concurrent connections to the same host
+            force_close=False,  # Keep connections alive
+            enable_cleanup_closed=True,  # Clean up closed connections
+            ttl_dns_cache=300,  # DNS cache TTL in seconds (5 minutes)
+        )
+        
+        self.session = aiohttp.ClientSession(connector=connector)
 
         while True:
             try:
