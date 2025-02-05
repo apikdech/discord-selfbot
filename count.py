@@ -100,7 +100,8 @@ async def send_number_updates(bot: DiscordSelfBot):
                 ):
                     log.info("Sending number updates")
                     message_numbers[channel_id] = deque(maxlen=10)
-                    await bot.trigger_typing(channel_id)
+                    # skip typing
+                    # await bot.trigger_typing(channel_id)
                     await bot.send_message(channel_id, str(largest_number.number + 1))
                     send_stuck_help[channel_id] = False
                     counter_stuck_times[channel_id] = 0
