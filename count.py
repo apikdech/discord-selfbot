@@ -54,11 +54,11 @@ def get_largest_message_number(channel_id: str) -> MessageNumber | None:
 
 
 def check_reaction_message(channel_id: str, message_id: str) -> bool:
-    if channel_id not in reaction_messages:
-        return False
-    
     if reaction_listen_config.get(channel_id, True) == False:
         return True
+
+    if channel_id not in reaction_messages:
+        return False
     
     return message_id in reaction_messages[channel_id]
 
@@ -82,6 +82,10 @@ reaction_listen_config: Dict[str, bool] = {
     "1330033413524033537": False,
     "1330237721557471232": False,
 }
+# largest_valid_number: Dict[str, int] = {
+#     "1330033413524033537": 0,
+#     "1330237721557471232": 0,
+# }
 
 
 async def send_number_updates(bot: DiscordSelfBot):
@@ -271,6 +275,13 @@ async def main():
                 message.timestamp,
                 message.author.id,
             )
+            # Immediately return if the number is valid
+            if send_number.get(message.channel_id, False) == True and check_reaction_message(message.channel_id, message.id):
+                await bot.trigger_typing(message.channel_id)
+                await bot.send_message(
+                    message.channel_id,
+                    str(number + 1),
+                )
             return
         elif number == 0:
             return
@@ -335,17 +346,17 @@ async def main():
         last_typing_timestamp = typing.timestamp
 
     # Initialize and start the scheduler
-    scheduler = AsyncIOScheduler()
-    scheduler.add_job(
-        send_number_updates,
-        trigger="interval",
-        seconds=0.1,
-        max_instances=1,
-        coalesce=True,
-        misfire_grace_time=None,
-        args=[bot],
-    )
-    scheduler.start()
+    # scheduler = AsyncIOScheduler()
+    # scheduler.add_job(
+    #     send_number_updates,
+    #     trigger="interval",
+    #     seconds=0.1,
+    #     max_instances=1,
+    #     coalesce=True,
+    #     misfire_grace_time=None,
+    #     args=[bot],
+    # )
+    # scheduler.start()
 
     # Start the bot
     log.info("Starting bot...")
