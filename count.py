@@ -73,7 +73,7 @@ async def send_number_updates(bot: DiscordSelfBot):
         return
 
     now = datetime.now().astimezone()
-    for channel_id in message_numbers.keys():
+    for channel_id in ["1330237721557471232"]:
         global send_stuck_help
 
         largest_number = get_largest_message_number(channel_id)
