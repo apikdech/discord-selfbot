@@ -17,40 +17,17 @@ from common import *
 from os import getenv
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import random
+from threading import Lock
 
 BLACKLISTED_IDS = ["xxxdodgemasterxxx"]
 COUNTING_BOT_ID = "510016054391734273"
 
-message_numbers: Dict[str, Deque[MessageNumber]] = {}
+# Add lock for thread-safe operations
+message_numbers_lock = Lock()
+message_numbers: Dict[str, MessageNumber] = {}
 reaction_messages: Dict[str, Deque[str]] = {}
 # Create a logger instance
 log = Logger(debug=True)
-
-
-# Helper function to add new message number
-def add_message_number(
-    channel_id: str, message_id: str, number: int, timestamp: str, author_id: str
-):
-    if channel_id not in message_numbers:
-        message_numbers[channel_id] = deque(maxlen=10)
-
-    message_numbers[channel_id].append(
-        MessageNumber(
-            message_id=message_id,
-            number=number,
-            timestamp=timestamp,
-            author_id=author_id,
-        )
-    )
-
-
-# Helper function to get largest message number for a channel
-def get_largest_message_number(channel_id: str) -> MessageNumber | None:
-    if channel_id not in message_numbers:
-        return None
-
-    channel_messages = message_numbers[channel_id]
-    return max(channel_messages, key=lambda x: x.number) if channel_messages else None
 
 
 def check_reaction_message(channel_id: str, message_id: str) -> bool:
@@ -88,25 +65,26 @@ async def send_number_updates(bot: DiscordSelfBot):
     now = datetime.now().astimezone()
     for channel_id in SENDING_CHANNELS:
         if send_number.get(channel_id, False) == True:
-            largest_number = get_largest_message_number(channel_id)
+            largest_number = None
+            with message_numbers_lock:
+                largest_number = message_numbers.get(channel_id)
             if largest_number and largest_number.author_id != bot.user.id:
                 # Convert the timestamp string to datetime object
                 last_timestamp = datetime.fromisoformat(largest_number.timestamp)
                 time_diff = (now - last_timestamp).total_seconds()
                 cooldown = cooldowns[channel_id][0] + random.uniform(0, cooldowns[channel_id][1] - cooldowns[channel_id][0])
 
-                if (time_diff > cooldown) and check_reaction_message(
-                    channel_id, largest_number.message_id
-                ):
-                    log.info("Sending number updates")
-                    message_numbers[channel_id] = deque(maxlen=10)
-                    # Fire and forget the message sending
-                    asyncio.create_task(bot.send_message(channel_id, str(largest_number.number + 1)))
-                    send_stuck_help[channel_id] = False
-                    counter_stuck_times[channel_id] = 0
-                else:
-                    response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
-                    log.info(response)
+                # if (time_diff > cooldown) and check_reaction_message(
+                #     channel_id, largest_number.message_id
+                # ):
+                log.info("Sending number updates")
+                # Fire and forget the message sending
+                asyncio.create_task(bot.send_message(channel_id, str(largest_number.number + 1)))
+                send_stuck_help[channel_id] = False
+                counter_stuck_times[channel_id] = 0
+                # else:
+                #     response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
+                #     log.info(response)
 
             if (
                 counter_stuck_times.get(channel_id, 0) > 20
@@ -157,18 +135,56 @@ async def main():
     @bot.on_event(EventType.MESSAGE_CREATE)
     async def handle_message(message: Message):
         log.info(f"New message: {message}")
-        if message.author.id == bot.user.id:
-            return
 
         if message.content == ".":
             global last_typing_timestamp
             last_typing_timestamp = int(message.timestamp) + 10
             return
+            
+        if message.author.id == COUNTING_BOT_ID:
+            if (
+                len(message.embeds) == 0
+                or message.referenced_message.content != "c!server"
+                or message.referenced_message.author.id != bot.user.id
+            ):
+                return
 
+            embed = message.embeds[0]
+
+            # Parse the description to get current number and last counter
+            if embed.description:
+                try:
+                    # Extract current number - matches "Current Number: **X,XXX**"
+                    current_number = embed.description.split("\n")[0]
+                    current_number = current_number.split("**")[1].replace(",", "")
+                    current_number = int(current_number)
+
+                    # Extract last counter - matches "Last counted by: <@USER_ID>"
+                    last_counter = embed.description.split("\n")[3]
+                    last_counter_id = last_counter.split("<@")[1].split(">")[0]
+
+                    log.info(
+                        f"Current number: {current_number}, Last counter: {last_counter_id}"
+                    )
+
+                    if last_counter_id == bot.user.id:
+                        return
+
+                    send_stuck_help[message.channel_id] = False
+                    send_number[message.channel_id] = True
+                    await bot.send_message(
+                        message.channel_id,
+                        str(current_number + 1),
+                    )
+                except (IndexError, ValueError) as e:
+                    log.error(f"Error parsing embed description: {e}")
+                    log.debug(f"Embed description: {embed.description}")
+
+            return
+        
         if message.author.id == OWNER_ID:
             if message.content.startswith("continue") and message.content.endswith("🗣️"):
                 counter_stuck_times[message.channel_id] = 0
-                message_numbers[message.channel_id] = deque(maxlen=10)
                 await bot.send_message(
                     message.channel_id, "c!server"
                 )
@@ -213,48 +229,6 @@ async def main():
                     message.channel_id, ":speaking_head: I'll stop listening to reactions now"
                 )
                 return
-            
-        if message.author.id == COUNTING_BOT_ID:
-            if (
-                len(message.embeds) == 0
-                or message.referenced_message.content != "c!server"
-                or message.referenced_message.author.id != bot.user.id
-            ):
-                return
-
-            embed = message.embeds[0]
-
-            # Parse the description to get current number and last counter
-            if embed.description:
-                try:
-                    # Extract current number - matches "Current Number: **X,XXX**"
-                    current_number = embed.description.split("\n")[0]
-                    current_number = current_number.split("**")[1].replace(",", "")
-                    current_number = int(current_number)
-
-                    # Extract last counter - matches "Last counted by: <@USER_ID>"
-                    last_counter = embed.description.split("\n")[3]
-                    last_counter_id = last_counter.split("<@")[1].split(">")[0]
-
-                    log.info(
-                        f"Current number: {current_number}, Last counter: {last_counter_id}"
-                    )
-
-                    if last_counter_id == bot.user.id:
-                        return
-
-                    send_stuck_help[message.channel_id] = False
-                    send_number[message.channel_id] = True
-                    message_numbers[message.channel_id] = deque(maxlen=10)
-                    await bot.send_message(
-                        message.channel_id,
-                        str(current_number + 1),
-                    )
-                except (IndexError, ValueError) as e:
-                    log.error(f"Error parsing embed description: {e}")
-                    log.debug(f"Embed description: {embed.description}")
-
-            return
 
         if len(message.content.split()) == 0:
             return
@@ -264,15 +238,19 @@ async def main():
         number = evaluate_number(first_word)
 
         if number >= 1:
-            add_message_number(
-                message.channel_id,
-                message.id,
-                number,
-                message.timestamp,
-                message.author.id,
-            )
+            with message_numbers_lock:
+                message_numbers[message.channel_id] = MessageNumber(
+                    message_id=message.id,
+                    number=number,
+                    timestamp=message.timestamp,
+                    author_id=message.author.id,
+                )
             return
+
         elif number == 0:
+            return
+        
+        if message.author.id == bot.user.id:
             return
 
         if message.author.username in BLACKLISTED_IDS:
@@ -314,7 +292,8 @@ async def main():
         ):
             await bot.send_message(reaction.channel_id, "1")
             # flush message numbers for the channel
-            message_numbers[reaction.channel_id] = deque(maxlen=10)
+            with message_numbers_lock:
+                message_numbers[reaction.channel_id] = None
         elif (
             reaction.emoji.name == "✅"
             or reaction.emoji.name == "☑️"
