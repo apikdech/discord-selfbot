@@ -102,13 +102,6 @@ async def send_number_updates(bot: DiscordSelfBot):
                     await bot.trigger_typing(channel_id)
                     await bot.send_message(channel_id, str(largest_number.number + 1))
                     message_numbers[channel_id] = deque(maxlen=10)
-                    add_message_number(
-                        channel_id,
-                        largest_number.message_id,
-                        largest_number.number + 1,
-                        now.isoformat(),
-                        bot.user.id,
-                    )
                     send_stuck_help[channel_id] = False
                     counter_stuck_times[channel_id] = 0
                 else:
@@ -257,14 +250,6 @@ async def main():
                         message.channel_id,
                         str(current_number + 1),
                     )
-                    # Update the message numbers
-                    add_message_number(
-                        message.channel_id,
-                        message.id,
-                        current_number + 1,
-                        message.timestamp,
-                        last_counter_id,
-                    )
                 except (IndexError, ValueError) as e:
                     log.error(f"Error parsing embed description: {e}")
                     log.debug(f"Embed description: {embed.description}")
@@ -330,13 +315,6 @@ async def main():
             await bot.send_message(reaction.channel_id, "1")
             # flush message numbers for the channel
             message_numbers[reaction.channel_id] = deque(maxlen=10)
-            add_message_number(
-                reaction.channel_id,
-                reaction.message_id,
-                1,
-                reaction.timestamp,
-                bot.user.id,
-            )
         elif (
             reaction.emoji.name == "✅"
             or reaction.emoji.name == "☑️"
