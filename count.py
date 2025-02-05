@@ -337,7 +337,7 @@ async def main():
     scheduler.add_job(
         send_number_updates,
         trigger="interval",
-        seconds=1,
+        seconds=0.1,
         max_instances=1,
         coalesce=True,
         misfire_grace_time=None,
