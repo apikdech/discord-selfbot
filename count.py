@@ -101,7 +101,10 @@ async def send_number_updates(bot: DiscordSelfBot):
                 response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
                 log.info(response)
 
-        if counter_stuck_times.get(channel_id, 0) > 15 and send_stuck_help.get(channel_id, False) == False:
+        if (
+            counter_stuck_times.get(channel_id, 0) > 15
+            and send_stuck_help.get(channel_id, False) == False
+        ):
             await bot.send_message(channel_id, "c!server")
             counter_stuck_times[channel_id] = 0
 
@@ -272,9 +275,11 @@ async def main():
                 message.channel_id, message.content
             )
             await bot.trigger_typing(message.channel_id)
-            await bot.reply_to_message(
-                message.id, message.channel_id, f":speaking_head: {response}"
-            )
+            chunked_responses = bot.chunk_message(response, 1950)
+            for chunk in chunked_responses:
+                await bot.reply_to_message(
+                    message.id, message.channel_id, f":speaking_head: {chunk}"
+                )
 
         await client.add_message_history(
             message.channel_id, message.id, message.author.id, message.content

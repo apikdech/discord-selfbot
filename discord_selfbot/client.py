@@ -326,40 +326,7 @@ class DiscordSelfBot:
             content (str): The message content
             reference_message_id (Optional[int]): The ID of the message to reply to. Only applies to first message if split.
         """
-        # Split content into chunks of 2000 characters
-        # We split on newlines when possible to maintain message formatting
-        chunks = []
-        current_chunk = ""
-
-        # First try to split on newlines
-        lines = content.split("\n")
-        for line in lines:
-            if len(current_chunk) + len(line) + 1 <= 2000:  # +1 for newline
-                if current_chunk:
-                    current_chunk += "\n"
-                current_chunk += line
-            else:
-                # If current line itself is > 2000 chars, split it
-                if len(line) > 2000:
-                    if current_chunk:
-                        chunks.append(current_chunk)
-                        current_chunk = ""
-                    # Split long line into 2000 char chunks
-                    for i in range(0, len(line), 2000):
-                        chunks.append(line[i : i + 2000])
-                else:
-                    # Current line would make chunk too big, save current chunk and start new
-                    if current_chunk:
-                        chunks.append(current_chunk)
-                    current_chunk = line
-
-        # Don't forget the last chunk
-        if current_chunk:
-            chunks.append(current_chunk)
-
-        # If no chunks were created (original message ≤ 2000 chars), send as single message
-        if not chunks:
-            chunks = [content]
+        chunks = self.chunk_message(content)
 
         # Send all chunks
         for i, chunk in enumerate(chunks):
@@ -608,3 +575,49 @@ class DiscordSelfBot:
             if self.session:
                 asyncio.run(self.session.close())
             self.log.info("Bot shutdown complete.")
+
+    def chunk_message(self, content: str, chunk_size: int = 2000) -> list[str]:
+        """
+        Split a message into chunks of specified size, preserving newlines where possible.
+
+        Args:
+            content (str): The message content to split
+            chunk_size (int): Maximum size of each chunk. Defaults to 2000 (Discord's limit)
+
+        Returns:
+            list[str]: List of message chunks, each no larger than chunk_size
+        """
+        chunks = []
+        current_chunk = ""
+
+        # First try to split on newlines
+        lines = content.split("\n")
+        for line in lines:
+            if len(current_chunk) + len(line) + 1 <= chunk_size:  # +1 for newline
+                if current_chunk:
+                    current_chunk += "\n"
+                current_chunk += line
+            else:
+                # If current line itself is > chunk_size, split it
+                if len(line) > chunk_size:
+                    if current_chunk:
+                        chunks.append(current_chunk)
+                        current_chunk = ""
+                    # Split long line into chunks
+                    for i in range(0, len(line), chunk_size):
+                        chunks.append(line[i : i + chunk_size])
+                else:
+                    # Current line would make chunk too big, save current chunk and start new
+                    if current_chunk:
+                        chunks.append(current_chunk)
+                    current_chunk = line
+
+        # Don't forget the last chunk
+        if current_chunk:
+            chunks.append(current_chunk)
+
+        # If no chunks were created (original message ≤ chunk_size), use original content
+        if not chunks:
+            chunks = [content]
+
+        return chunks
