@@ -12,6 +12,7 @@ from .models import (
     EventType,
 )
 from .logger import Logger
+from requests import request
 
 
 class DiscordSelfBot:
@@ -64,7 +65,7 @@ class DiscordSelfBot:
         monitored_channels: List[int] = None,
         monitored_guilds: List[int] = None,
         debug: bool = False,
-        max_concurrent_tasks: int = 50,
+        max_concurrent_tasks: int = 30,
     ):
         """
         Initialize the Discord self-bot.
@@ -282,6 +283,13 @@ class DiscordSelfBot:
             self.log.error(f"Error in event handler for {event_type}: {e}")
             self.log.debug(f"Event data: {raw_data}")
 
+    def api_request(self, method: str, endpoint: str, **kwargs) -> Optional[Dict]:
+        """
+        Make an HTTP request to the Discord API.
+        """
+        r = request(method, f"{self.API_URL}{endpoint}", headers={"Authorization": self.token, "Content-Type": "application/json"}, **kwargs)
+        return r.json()
+
     async def _api_request(
         self, method: str, endpoint: str, **kwargs
     ) -> Optional[Dict]:
@@ -338,7 +346,7 @@ class DiscordSelfBot:
                     "channel_id": str(channel_id),
                 }
 
-            await self._api_request(
+            await self.api_request(
                 "POST", f"/channels/{channel_id}/messages", json=payload
             )
 
