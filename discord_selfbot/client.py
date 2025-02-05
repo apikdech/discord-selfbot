@@ -316,7 +316,7 @@ class DiscordSelfBot:
 
     async def send_message(
         self, channel_id: int, content: str, reference_message_id: Optional[int] = None
-    ):
+    ) -> Optional[Message]:
         """
         Send a message to a Discord channel. If the content is longer than 2000 characters,
         it will be split into multiple messages.
@@ -325,10 +325,14 @@ class DiscordSelfBot:
             channel_id (int): The ID of the channel to send to
             content (str): The message content
             reference_message_id (Optional[int]): The ID of the message to reply to. Only applies to first message if split.
+
+        Returns:
+            Optional[Message]: The sent message object if successful, None otherwise
         """
         chunks = self.chunk_message(content)
 
         # Send all chunks
+        last_message = None
         for i, chunk in enumerate(chunks):
             payload = {"content": chunk}
             # Only include reference for first message
@@ -338,9 +342,13 @@ class DiscordSelfBot:
                     "channel_id": str(channel_id),
                 }
 
-            await self._api_request(
+            response = await self._api_request(
                 "POST", f"/channels/{channel_id}/messages", json=payload
             )
+            if response:
+                last_message = Message.from_dict(response)
+
+        return last_message
 
     async def reply_to_message(self, message_id: int, channel_id: int, content: str):
         """
