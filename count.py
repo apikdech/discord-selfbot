@@ -1,7 +1,7 @@
 import asyncio
 from collections import deque
 from datetime import datetime
-from typing import Dict, Deque, List
+from typing import Dict, Deque, List, Tuple
 from dotenv import load_dotenv
 from discord_gpt.client import DiscordGPTClient
 from discord_selfbot import (
@@ -56,30 +56,45 @@ def get_largest_message_number(channel_id: str) -> MessageNumber | None:
 def check_reaction_message(channel_id: str, message_id: str) -> bool:
     if channel_id not in reaction_messages:
         return False
-
+    
+    if reaction_listen_config.get(channel_id, True) == False:
+        return True
+    
     return message_id in reaction_messages[channel_id]
 
 
 last_typing_timestamp = 0
-cooldown_min = 0.1
-cooldown_max = 0.5
-send_number = True
+cooldowns: Dict[str, Tuple[float, float]] = {
+    "1330033413524033537": (30, 60),
+    "1330237721557471232": (0.1, 0.5),
+}
+send_number: Dict[str, bool] = {
+    "1330033413524033537": False,
+    "1330237721557471232": True, 
+}
 counter_stuck_times: Dict[str, int] = {}
 send_stuck_help: Dict[str, bool] = {}
+SENDING_CHANNELS = [
+    "1330033413524033537", # SST
+    "1330237721557471232", # Hideout
+]
+reaction_listen_config: Dict[str, bool] = {
+    "1330033413524033537": False,
+    "1330237721557471232": False,
+}
 
 
 async def send_number_updates(bot: DiscordSelfBot):
-    if send_number == False:
-        return
-
     now = datetime.now().astimezone()
-    for channel_id in ["1330237721557471232"]:
+    for channel_id in SENDING_CHANNELS:
+        if send_number.get(channel_id, True) == False:
+            return
         largest_number = get_largest_message_number(channel_id)
         if largest_number and largest_number.author_id != bot.user.id:
             # Convert the timestamp string to datetime object
             last_timestamp = datetime.fromisoformat(largest_number.timestamp)
             time_diff = (now - last_timestamp).total_seconds()
-            cooldown = cooldown_min + random.uniform(0, cooldown_max - cooldown_min)
+            cooldown = cooldowns[channel_id][0] + random.uniform(0, cooldowns[channel_id][1] - cooldowns[channel_id][0])
 
             if (time_diff > cooldown) and check_reaction_message(
                 channel_id, largest_number.message_id
@@ -161,42 +176,54 @@ async def main():
             return
 
         if message.author.id == OWNER_ID:
-            if message.content.startswith("continue"):
-                number = message.content.split()[1]
-                number = evaluate_number(number)
-                if number >= 1:
-                    await bot.send_message(message.channel_id, str(number))
-                    counter_stuck_times[message.channel_id] = 0
-                    message_numbers[message.channel_id] = deque(maxlen=10)
+            if message.content.startswith("continue") and message.content.endswith(":speaking_head:"):
+                counter_stuck_times[message.channel_id] = 0
+                message_numbers[message.channel_id] = deque(maxlen=10)
+                await bot.send_message(
+                    message.channel_id, "c!server"
+                )
                 return
 
-            if message.content == "<:PauseBusiness:941975578729402408>":
-                send_number = False
+            if message.content.startswith("<:PauseBusiness:941975578729402408>"):
+                send_number[message.channel_id] = False
                 await bot.send_message(
                     message.channel_id, "<:PauseBusiness:941975578729402408>"
                 )
                 return
 
-            if message.content == "<:sadcatplease:898223330073673798>":
-                send_number = True
+            if message.content.startswith("<:sadcatplease:898223330073673798>"):
+                send_number[message.channel_id] = True
                 await bot.send_message(
                     message.channel_id, "<:sadcatplease:898223330073673798>"
                 )
                 return
 
             if message.content.startswith("cooldown"):
-                global cooldown_min, cooldown_max
-
-                cooldown_min = message.content.split()[1]
-                cooldown_max = message.content.split()[2]
+                splitted_message = message.content.split()
+                cooldown_min, cooldown_max = splitted_message[1], splitted_message[2]
                 cooldown_min = float(cooldown_min)
                 cooldown_max = float(cooldown_max)
+                cooldowns[message.channel_id] = (cooldown_min, cooldown_max)
                 await bot.send_message(
                     message.channel_id,
                     f"Updated the cooldown to be [{cooldown_min}, {cooldown_max}]",
                 )
                 return
-
+            
+            if message.content.startswith("listen reaction"):
+                reaction_listen_config[message.channel_id] = True
+                await bot.send_message(
+                    message.channel_id, ":speaking_head: I'll listen to reactions now"
+                )
+                return
+            
+            if message.content.startswith("stop listen reaction"):
+                reaction_listen_config[message.channel_id] = False
+                await bot.send_message(
+                    message.channel_id, ":speaking_head: I'll stop listening to reactions now"
+                )
+                return
+            
         if message.author.id == COUNTING_BOT_ID:
             if (
                 len(message.embeds) == 0
@@ -227,7 +254,7 @@ async def main():
                         return
 
                     send_stuck_help[message.channel_id] = False
-                    send_number = True
+                    send_number[message.channel_id] = True
                     message_numbers[message.channel_id] = deque(maxlen=10)
                     await bot.send_message(
                         message.channel_id,
