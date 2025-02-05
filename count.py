@@ -105,7 +105,7 @@ async def send_number_updates(bot: DiscordSelfBot):
                 response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
                 log.info(response)
 
-        elif counter_stuck_times.get(channel_id, 0) > 10 and send_stuck_help == False:
+        if counter_stuck_times.get(channel_id, 0) > 10 and send_stuck_help == False:
             await bot.send_message(channel_id, "c!server")
             counter_stuck_times[channel_id] = 0
 
