@@ -65,7 +65,6 @@ cooldown_min = 0.1
 cooldown_max = 0.5
 send_number = True
 counter_stuck_times: Dict[str, int] = {}
-send_stuck_help: Dict[str, bool] = {}
 
 
 async def send_number_updates(bot: DiscordSelfBot):
@@ -87,6 +86,7 @@ async def send_number_updates(bot: DiscordSelfBot):
                 channel_id, largest_number.message_id
             ):
                 log.info("Sending number updates")
+                counter_stuck_times[channel_id] = 0
                 await bot.trigger_typing(channel_id)
                 await bot.send_message(channel_id, str(largest_number.number + 1))
                 message_numbers[channel_id] = deque(maxlen=10)
@@ -97,22 +97,17 @@ async def send_number_updates(bot: DiscordSelfBot):
                     now.isoformat(),
                     bot.user.id,
                 )
-                send_stuck_help[channel_id] = False
-                counter_stuck_times[channel_id] = 0
             else:
                 response = f"Waiting for {cooldown - time_diff} seconds to send number {largest_number.number + 1} update from {largest_number.author_id}"
                 log.info(response)
 
-        if counter_stuck_times.get(channel_id, 0) > 10 and send_stuck_help.get(channel_id, False) == False:
+        if counter_stuck_times.get(channel_id, 0) > 15:
             await bot.send_message(channel_id, "c!server")
             counter_stuck_times[channel_id] = 0
-
-            send_stuck_help[channel_id] = True
         else:
-            if send_stuck_help.get(channel_id, False) == False:
-                counter_stuck_times[channel_id] = (
-                    counter_stuck_times.get(channel_id, 0) + 1
-                )
+            counter_stuck_times[channel_id] = (
+                counter_stuck_times.get(channel_id, 0) + 1
+            )
 
 
 async def main():
@@ -225,7 +220,6 @@ async def main():
                     if last_counter_id == bot.user.id:
                         return
 
-                    send_stuck_help[message.channel_id] = False
                     send_number = True
                     message_numbers[message.channel_id] = deque(maxlen=10)
                     await bot.send_message(
