@@ -100,9 +100,8 @@ async def send_number_updates(bot: DiscordSelfBot):
                 ):
                     log.info("Sending number updates")
                     message_numbers[channel_id] = deque(maxlen=10)
-                    # skip typing
-                    # await bot.trigger_typing(channel_id)
-                    await bot.send_message(channel_id, str(largest_number.number + 1))
+                    # Fire and forget the message sending
+                    asyncio.create_task(bot.send_message(channel_id, str(largest_number.number + 1)))
                     send_stuck_help[channel_id] = False
                     counter_stuck_times[channel_id] = 0
                 else:
@@ -113,9 +112,9 @@ async def send_number_updates(bot: DiscordSelfBot):
                 counter_stuck_times.get(channel_id, 0) > 150
                 and send_stuck_help.get(channel_id, False) == False
             ):
-                await bot.send_message(channel_id, "c!server")
+                # Fire and forget the server check message
+                asyncio.create_task(bot.send_message(channel_id, "c!server"))
                 counter_stuck_times[channel_id] = 0
-
                 send_stuck_help[channel_id] = True
             else:
                 if send_stuck_help.get(channel_id, False) == False:
