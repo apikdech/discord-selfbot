@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from typing import List, Optional, Dict
 from enum import Enum
 
@@ -83,6 +83,7 @@ class Author:
         global_name (Optional[str]): The user's global display name
         discriminator (str): The user's discriminator (4 digits after #)
         avatar (Optional[str]): The user's avatar hash
+        flags (Optional[int]): The user's flags (badges, etc.)
         public_flags (int): The user's public flags (badges, etc.)
         avatar_decoration_data (Optional[Dict]): Data about avatar decorations
         primary_guild (Optional[str]): The user's primary guild ID
@@ -100,8 +101,16 @@ class Author:
     avatar_decoration_data: Optional[Dict]
     primary_guild: Optional[str]
     clan: Optional[str]
+    flags: Optional[int] = None
     bot: Optional[bool] = False
     display_name: Optional[str] = None
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> "Author":
+        """Create an Author instance from a dictionary, ignoring unknown fields."""
+        valid_fields = {field.name for field in fields(cls)}
+        filtered_data = {k: v for k, v in data.items() if k in valid_fields}
+        return cls(**filtered_data)
 
 
 @dataclass
@@ -367,20 +376,11 @@ class Message:
 
     @classmethod
     def from_dict(cls, data: Dict) -> "Message":
-        """
-        Create a Message instance from a dictionary of data.
-
-        Args:
-            data (Dict): The raw message data from Discord
-
-        Returns:
-            Message: A new Message instance with the parsed data
-        """
+        """Create a Message instance from a dictionary of data."""
         # Parse author if exists
         author = None
         if "author" in data:
-            author_data = {k: v for k, v in data["author"].items() if k != "member"}
-            author = Author(**author_data)
+            author = Author.from_dict(data["author"])
 
         # Parse mentions into Author objects
         mentions = []
@@ -388,7 +388,7 @@ class Message:
             for mention in data["mentions"]:
                 # Remove member field from mention data before creating Author
                 mention_data = {k: v for k, v in mention.items() if k != "member"}
-                mentions.append(Author(**mention_data))
+                mentions.append(Author.from_dict(mention_data))
 
         # Parse attachments into Attachment objects
         attachments = []

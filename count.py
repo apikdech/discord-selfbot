@@ -88,8 +88,12 @@ follow_users: Dict[str, str] = {}
 async def send_number_updates(bot: DiscordSelfBot):
     now = datetime.now().astimezone()
     for channel_id in SENDING_CHANNELS:
+        log.info(
+            f"Sending number updates for channel {channel_id}, counter stuck times: {counter_stuck_times.get(channel_id, 0)}"
+        )
         if send_number.get(channel_id, False) == True:
             largest_number = get_largest_message_number(channel_id)
+            log.info(f"Largest number: {largest_number}")
             if largest_number and largest_number.author_id != bot.user.id:
                 # Convert the timestamp string to datetime object
                 last_timestamp = datetime.fromisoformat(largest_number.timestamp)
@@ -106,11 +110,19 @@ async def send_number_updates(bot: DiscordSelfBot):
                     log.info("Sending number updates")
                     message_numbers[channel_id] = deque(maxlen=10)
                     # Fire and forget the message sending
-                asyncio.create_task(
-                    bot.send_message(channel_id, str(largest_number.number + 1))
-                )
-                send_stuck_help[channel_id] = False
-                counter_stuck_times[channel_id] = 0
+                    payload = str(largest_number.number + 1)
+                    additional_payload = ""
+                    response = None
+                    while response is None:
+                        response = await bot.send_message(
+                            channel_id, payload + additional_payload
+                        )
+                        additional_payload += " <:bugcatsob:1109864913322655784>"
+                    log.info(
+                        f"Sent number {largest_number.number + 1} for channel {channel_id}, response: {response}"
+                    )
+                    send_stuck_help[channel_id] = False
+                    counter_stuck_times[channel_id] = 0
 
             if (
                 counter_stuck_times.get(channel_id, 0) > 40
@@ -290,6 +302,7 @@ async def main():
                 message.timestamp,
                 message.author.id,
             )
+            log.info(f"Added message number {number} for channel {message.channel_id}")
             return
         elif number == 0:
             return
