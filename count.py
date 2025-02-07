@@ -56,32 +56,33 @@ def get_largest_message_number(channel_id: str) -> MessageNumber | None:
 def check_reaction_message(channel_id: str, message_id: str) -> bool:
     if reaction_listen_config.get(channel_id, True) == False:
         return True
-        
+
     if channel_id not in reaction_messages:
         return False
-    
+
     return message_id in reaction_messages[channel_id]
 
 
 last_typing_timestamp = 0
 cooldowns: Dict[str, Tuple[float, float]] = {
     "1330033413524033537": (30, 60),
-    "1330237721557471232": (0.1, 0.5),
+    "1330237721557471232": (0.001, 0.005),
 }
 send_number: Dict[str, bool] = {
     "1330033413524033537": False,
-    "1330237721557471232": True, 
+    "1330237721557471232": True,
 }
 counter_stuck_times: Dict[str, int] = {}
 send_stuck_help: Dict[str, bool] = {}
 SENDING_CHANNELS = [
-    "1330033413524033537", # SST
-    "1330237721557471232", # Hideout
+    "1330033413524033537",  # SST
+    "1330237721557471232",  # Hideout
 ]
 reaction_listen_config: Dict[str, bool] = {
     "1330033413524033537": False,
     "1330237721557471232": False,
 }
+follow_users: Dict[str, str] = {}
 
 
 async def send_number_updates(bot: DiscordSelfBot):
@@ -91,13 +92,23 @@ async def send_number_updates(bot: DiscordSelfBot):
             largest_number = get_largest_message_number(channel_id)
             if largest_number and largest_number.author_id != bot.user.id:
                 # Convert the timestamp string to datetime object
-                # last_timestamp = datetime.fromisoformat(largest_number.timestamp)
-                # time_diff = (now - last_timestamp).total_seconds()
-                # cooldown = cooldowns[channel_id][0] + random.uniform(0, cooldowns[channel_id][1] - cooldowns[channel_id][0])
-                log.info("Sending number updates")
-                message_numbers[channel_id] = deque(maxlen=10)
-                # Fire and forget the message sending
-                asyncio.create_task(bot.send_message(channel_id, str(largest_number.number + 1)))
+                last_timestamp = datetime.fromisoformat(largest_number.timestamp)
+                time_diff = (now - last_timestamp).total_seconds()
+                cooldown = cooldowns[channel_id][0] + random.uniform(
+                    0, cooldowns[channel_id][1] - cooldowns[channel_id][0]
+                )
+                if (
+                    time_diff > cooldown
+                    and check_reaction_message(channel_id, largest_number.message_id)
+                    and follow_users.get(channel_id, largest_number.author_id)
+                    == largest_number.author_id
+                ):
+                    log.info("Sending number updates")
+                    message_numbers[channel_id] = deque(maxlen=10)
+                    # Fire and forget the message sending
+                asyncio.create_task(
+                    bot.send_message(channel_id, str(largest_number.number + 1))
+                )
                 send_stuck_help[channel_id] = False
                 counter_stuck_times[channel_id] = 0
 
@@ -158,15 +169,13 @@ async def main():
             last_typing_timestamp = int(message.timestamp) + 10
             return
 
-        if message.author.id == OWNER_ID:
-            if message.content.startswith("continue") and message.content.endswith("🗣️"):
-                counter_stuck_times[message.channel_id] = 0
-                message_numbers[message.channel_id] = deque(maxlen=10)
-                await bot.send_message(
-                    message.channel_id, "c!server"
-                )
-                return
+        if message.content.startswith("continue") and message.content.endswith("🗣️"):
+            counter_stuck_times[message.channel_id] = 0
+            message_numbers[message.channel_id] = deque(maxlen=10)
+            await bot.send_message(message.channel_id, "c!server")
+            return
 
+        if message.author.id == OWNER_ID:
             if message.content.startswith("<:PauseBusiness:941975578729402408>"):
                 send_number[message.channel_id] = False
                 await bot.send_message(
@@ -192,21 +201,36 @@ async def main():
                     f"Updated the cooldown to be [{cooldown_min}, {cooldown_max}]",
                 )
                 return
-            
+
             if message.content.startswith("listen reaction"):
                 reaction_listen_config[message.channel_id] = True
                 await bot.send_message(
                     message.channel_id, ":speaking_head: I'll listen to reactions now"
                 )
                 return
-            
+
             if message.content.startswith("stop listen reaction"):
                 reaction_listen_config[message.channel_id] = False
                 await bot.send_message(
-                    message.channel_id, ":speaking_head: I'll stop listening to reactions now"
+                    message.channel_id,
+                    ":speaking_head: I'll stop listening to reactions now",
                 )
                 return
-            
+
+            if message.content.startswith("follow user"):
+                splitted_message = message.content.split()
+                # <@USER_ID>
+                user_id = splitted_message[2].split("<@")[1].split(">")[0]
+                follow_users[message.channel_id] = user_id
+                await bot.send_message(message.channel_id, f"Followed user {user_id}")
+                return
+
+            if message.content.startswith("stop follow user"):
+                # Remove channel from follow_users
+                follow_users.pop(message.channel_id, None)
+                await bot.send_message(message.channel_id, "Stopped following user")
+                return
+
         if message.author.id == COUNTING_BOT_ID:
             if (
                 len(message.embeds) == 0
