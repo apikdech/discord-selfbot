@@ -217,15 +217,17 @@ async def main():
                 )
                 return
 
-            if message.content.startswith("follow user"):
+            if message.content.startswith("follow"):
                 splitted_message = message.content.split()
                 # <@USER_ID>
-                user_id = splitted_message[2].split("<@")[1].split(">")[0]
+                user_id = splitted_message[1].split("<@")[1].split(">")[0]
                 follow_users[message.channel_id] = user_id
-                await bot.send_message(message.channel_id, f"Followed user {user_id}")
+                await bot.send_message(
+                    message.channel_id, f"Followed user <@{user_id}>"
+                )
                 return
 
-            if message.content.startswith("stop follow user"):
+            if message.content.startswith("stop follow"):
                 # Remove channel from follow_users
                 follow_users.pop(message.channel_id, None)
                 await bot.send_message(message.channel_id, "Stopped following user")
