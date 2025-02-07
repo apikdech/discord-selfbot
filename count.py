@@ -85,6 +85,13 @@ reaction_listen_config: Dict[str, bool] = {
 follow_users: Dict[str, str] = {}
 
 
+async def send_message_with_retry(bot: DiscordSelfBot, channel_id: str, payload: str):
+    response = None
+    while response is None:
+        response = await bot.send_message(channel_id, payload)
+    return response
+
+
 async def send_number_updates(bot: DiscordSelfBot):
     now = datetime.now().astimezone()
     for channel_id in SENDING_CHANNELS:
@@ -189,6 +196,7 @@ async def main():
 
         if message.author.id == OWNER_ID:
             if message.content.startswith("<:PauseBusiness:941975578729402408>"):
+                log.info(f"Stopping number updates for channel {message.channel_id}")
                 send_number[message.channel_id] = False
                 await bot.send_message(
                     message.channel_id, "<:PauseBusiness:941975578729402408>"
@@ -196,6 +204,7 @@ async def main():
                 return
 
             if message.content.startswith("<:sadcatplease:898223330073673798>"):
+                log.info(f"Sending number updates for channel {message.channel_id}")
                 send_number[message.channel_id] = True
                 await bot.send_message(
                     message.channel_id, "<:sadcatplease:898223330073673798>"
@@ -203,6 +212,7 @@ async def main():
                 return
 
             if message.content.startswith("cooldown"):
+                log.info(f"Updating cooldown for channel {message.channel_id}")
                 splitted_message = message.content.split()
                 cooldown_min, cooldown_max = splitted_message[1], splitted_message[2]
                 cooldown_min = float(cooldown_min)
@@ -215,6 +225,7 @@ async def main():
                 return
 
             if message.content.startswith("listen reaction"):
+                log.info(f"Listening to reactions for channel {message.channel_id}")
                 reaction_listen_config[message.channel_id] = True
                 await bot.send_message(
                     message.channel_id, ":speaking_head: I'll listen to reactions now"
@@ -222,6 +233,9 @@ async def main():
                 return
 
             if message.content.startswith("stop listen reaction"):
+                log.info(
+                    f"Stop listening to reactions for channel {message.channel_id}"
+                )
                 reaction_listen_config[message.channel_id] = False
                 await bot.send_message(
                     message.channel_id,
@@ -230,6 +244,7 @@ async def main():
                 return
 
             if message.content.startswith("follow"):
+                log.info(f"Follow user: {message}")
                 splitted_message = message.content.split()
                 # <@USER_ID>
                 user_id = splitted_message[1].split("<@")[1].split(">")[0]
@@ -237,6 +252,7 @@ async def main():
                 await bot.send_message(
                     message.channel_id, f"Followed user <@{user_id}>"
                 )
+                log.info(f"Followed user {user_id} for channel {message.channel_id}")
                 return
 
             if message.content.startswith("stop follow"):
