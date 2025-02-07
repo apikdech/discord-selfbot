@@ -30,7 +30,11 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/discord-bot
-            git pull
+            git remote set-url origin https://${{ secrets.GH_TOKEN }}@github.com/apikdech/py-discord-selfbot.git
+            git pull origin main
             source venv/bin/activate
             pip install -r requirements.txt
+            # Update service file and reload systemd
+            sudo cp deployment/discord-bot.service /etc/systemd/system/
+            sudo systemctl daemon-reload
             sudo systemctl restart discord-bot.service

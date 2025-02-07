@@ -9,6 +9,8 @@ Group=apikdech
 WorkingDirectory=/opt/discord-bot
 Environment=PATH=/opt/discord-bot/venv/bin
 Environment=TZ=Asia/Jakarta
+# Add this if using HTTPS with PAT
+Environment=GIT_ASKPASS=/opt/discord-bot/git-askpass.sh
 ExecStart=/opt/discord-bot/venv/bin/python count.py
 Restart=always
 RestartSec=10
