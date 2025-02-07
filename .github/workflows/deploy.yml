@@ -2,9 +2,9 @@ name: Deploy Discord Bot
 
 on:
   push:
-    branches: [main]
+    branches: [counting]
   pull_request:
-    branches: [main]
+    branches: [counting]
 
 jobs:
   deploy:
@@ -31,7 +31,7 @@ jobs:
           script: |
             cd /opt/discord-bot
             git remote set-url origin https://apikdech:${{ secrets.GH_TOKEN }}@github.com/apikdech/discord-selfbot.git
-            git pull origin main
+            git pull origin counting
             source venv/bin/activate
             pip install -r requirements.txt
             # Update service file and reload systemd

@@ -10,6 +10,7 @@ sudo chown $USER:$USER /opt/discord-bot
 
 # Clone repository (if not already done through deployment)
 git clone https://github.com/apikdech/discord-selfbot.git /opt/discord-bot
+git checkout counting
 
 # Create and activate virtual environment
 cd /opt/discord-bot
