@@ -577,21 +577,29 @@ class DiscordSelfBot:
                 await asyncio.sleep(5)
                 continue
 
-    def run(self):
+    async def run(self):
         """
         Run the bot synchronously.
         This is the main entry point for starting the bot.
         """
         try:
-            asyncio.run(self.start())
+            await self.start()
         except KeyboardInterrupt:
             self.log.info("Bot shutdown requested...")
             # Cancel all running tasks
             for task in self.active_tasks:
                 task.cancel()
             if self.session:
-                asyncio.run(self.session.close())
+                await self.session.close()
             self.log.info("Bot shutdown complete.")
+
+    async def stop(self):
+        self.log.info("Bot shutdown requested...")
+        # Cancel all running tasks
+        for task in self.active_tasks:
+            task.cancel()
+        if self.session:
+            await self.session.close()
 
     def chunk_message(self, content: str, chunk_size: int = 2000) -> list[str]:
         """
